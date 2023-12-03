@@ -1,0 +1,199 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ItemGroup Label="ProjectConfigurations">
+		<ProjectConfiguration Include="DebugGame_RocketGame|x64">
+			<Configuration>DebugGame_RocketGame</Configuration>
+			<Platform>x64</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="DebugGame_RocketGame|Win32">
+			<Configuration>DebugGame_RocketGame</Configuration>
+			<Platform>Win32</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="DebugGame_Editor|x64">
+			<Configuration>DebugGame_Editor</Configuration>
+			<Platform>x64</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="DebugGame_Editor|Win32">
+			<Configuration>DebugGame_Editor</Configuration>
+			<Platform>Win32</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Development_RocketGame|x64">
+			<Configuration>Development_RocketGame</Configuration>
+			<Platform>x64</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Development_RocketGame|Win32">
+			<Configuration>Development_RocketGame</Configuration>
+			<Platform>Win32</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Development_Editor|x64">
+			<Configuration>Development_Editor</Configuration>
+			<Platform>x64</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Development_Editor|Win32">
+			<Configuration>Development_Editor</Configuration>
+			<Platform>Win32</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Shipping_RocketGame|x64">
+			<Configuration>Shipping_RocketGame</Configuration>
+			<Platform>x64</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Shipping_RocketGame|Win32">
+			<Configuration>Shipping_RocketGame</Configuration>
+			<Platform>Win32</Platform>
+		</ProjectConfiguration>
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\CrowdControl.uproject" />
+		<None Include="..\..\Source\CrowdControl.Target.cs" />
+		<None Include="..\..\Source\CrowdControlEditor.Target.cs" />
+		<None Include="..\..\Config\DefaultEditor.ini" />
+		<None Include="..\..\Config\DefaultEngine.ini" />
+		<None Include="..\..\Config\DefaultGame.ini" />
+		<None Include="..\..\Config\DefaultInput.ini" />
+		<None Include="..\..\Source\CrowdControl\CrowdControl.Build.cs" />
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CCManager.cpp" />
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CrowdControl.cpp" />
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CrowdControlCharacter.cpp" />
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CrowdControlGameMode.cpp" />
+		<ClCompile Include="..\..\Source\CrowdControl\Private\MyBlueprintFunctionLibrary.cpp" />
+		<ClCompile Include="..\..\Source\CrowdControl\Private\MyStreambufClass.cpp" />
+		<ClCompile Include="..\..\Source\CrowdControl\Private\UE4StreamBuf.cpp" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CCManager.h" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControl.h" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControlCharacter.h" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControlGameMode.h" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControlRunable.h" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\MyBlueprintFunctionLibrary.h" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\MyStreambufClass.h" />
+		<ClInclude Include="..\..\Source\CrowdControl\Public\UE4StreamBuf.h" />
+		<None Include="..\..\Source\CrowdControl\Resources\Windows\CrowdControl.ico" />
+		<ResourceCompile Include="..\..\Source\CrowdControl\Resources\Windows\CrowdControl.rc" />
+	</ItemGroup>
+	<PropertyGroup Label="Globals">
+		<ProjectGuid>{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}</ProjectGuid>
+		<Keyword>MakeFileProj</Keyword>
+		<RootNamespace>CrowdControl</RootNamespace>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGame_RocketGame|x64'" Label="Configuration">
+		<ConfigurationType>Makefile</ConfigurationType>
+		<PlatformToolset>v120</PlatformToolset>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGame_Editor|x64'" Label="Configuration">
+		<ConfigurationType>Makefile</ConfigurationType>
+		<PlatformToolset>v120</PlatformToolset>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development_RocketGame|x64'" Label="Configuration">
+		<ConfigurationType>Makefile</ConfigurationType>
+		<PlatformToolset>v120</PlatformToolset>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development_Editor|x64'" Label="Configuration">
+		<ConfigurationType>Makefile</ConfigurationType>
+		<PlatformToolset>v120</PlatformToolset>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Shipping_RocketGame|Win32'" Label="Configuration">
+		<ConfigurationType>Makefile</ConfigurationType>
+		<PlatformToolset>v120</PlatformToolset>
+	</PropertyGroup>
+	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+	<ImportGroup Label="ExtensionSettings" />
+	<PropertyGroup Label="UserMacros" />
+	<ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGame_RocketGame|x64'" Label="PropertySheets">
+		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	</ImportGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGame_RocketGame|x64'">
+		<IncludePath />
+		<ReferencePath />
+		<LibraryPath />
+		<LibraryWPath />
+		<SourcePath />
+		<ExcludePath />
+		<OutDir>$(ProjectDir)..\Build\Unused\</OutDir>
+		<IntDir>$(ProjectDir)..\Build\Unused\</IntDir>
+		<NMakeBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Build.bat CrowdControl Win64 DebugGame "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeBuildCommandLine>
+		<NMakeReBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Rebuild.bat CrowdControl Win64 DebugGame "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeReBuildCommandLine>
+		<NMakeCleanCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Clean.bat CrowdControl Win64 DebugGame "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeCleanCommandLine>
+		<NMakeOutput>..\..\Binaries\Win64\CrowdControl-Win64-DebugGame.exe</NMakeOutput>
+	</PropertyGroup>
+	<ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGame_Editor|x64'" Label="PropertySheets">
+		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	</ImportGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGame_Editor|x64'">
+		<IncludePath />
+		<ReferencePath />
+		<LibraryPath />
+		<LibraryWPath />
+		<SourcePath />
+		<ExcludePath />
+		<OutDir>$(ProjectDir)..\Build\Unused\</OutDir>
+		<IntDir>$(ProjectDir)..\Build\Unused\</IntDir>
+		<NMakeBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Build.bat CrowdControlEditor Win64 DebugGame "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeBuildCommandLine>
+		<NMakeReBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Rebuild.bat CrowdControlEditor Win64 DebugGame "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeReBuildCommandLine>
+		<NMakeCleanCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Clean.bat CrowdControlEditor Win64 DebugGame "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeCleanCommandLine>
+		<NMakeOutput>G:\Unreal\UE_4.5\Engine\Binaries\Win64\UE4Editor.exe</NMakeOutput>
+	</PropertyGroup>
+	<ImportGroup Condition="'$(Configuration)|$(Platform)'=='Development_RocketGame|x64'" Label="PropertySheets">
+		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	</ImportGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development_RocketGame|x64'">
+		<IncludePath />
+		<ReferencePath />
+		<LibraryPath />
+		<LibraryWPath />
+		<SourcePath />
+		<ExcludePath />
+		<OutDir>$(ProjectDir)..\Build\Unused\</OutDir>
+		<IntDir>$(ProjectDir)..\Build\Unused\</IntDir>
+		<NMakeBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Build.bat CrowdControl Win64 Development "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeBuildCommandLine>
+		<NMakeReBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Rebuild.bat CrowdControl Win64 Development "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeReBuildCommandLine>
+		<NMakeCleanCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Clean.bat CrowdControl Win64 Development "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeCleanCommandLine>
+		<NMakeOutput>..\..\Binaries\Win64\CrowdControl.exe</NMakeOutput>
+	</PropertyGroup>
+	<ImportGroup Condition="'$(Configuration)|$(Platform)'=='Development_Editor|x64'" Label="PropertySheets">
+		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	</ImportGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development_Editor|x64'">
+		<IncludePath />
+		<ReferencePath />
+		<LibraryPath />
+		<LibraryWPath />
+		<SourcePath />
+		<ExcludePath />
+		<OutDir>$(ProjectDir)..\Build\Unused\</OutDir>
+		<IntDir>$(ProjectDir)..\Build\Unused\</IntDir>
+		<NMakeBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Build.bat CrowdControlEditor Win64 Development "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeBuildCommandLine>
+		<NMakeReBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Rebuild.bat CrowdControlEditor Win64 Development "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeReBuildCommandLine>
+		<NMakeCleanCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Clean.bat CrowdControlEditor Win64 Development "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeCleanCommandLine>
+		<NMakeOutput>G:\Unreal\UE_4.5\Engine\Binaries\Win64\UE4Editor.exe</NMakeOutput>
+	</PropertyGroup>
+	<ImportGroup Condition="'$(Configuration)|$(Platform)'=='Shipping_RocketGame|Win32'" Label="PropertySheets">
+		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	</ImportGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Shipping_RocketGame|Win32'">
+		<IncludePath />
+		<ReferencePath />
+		<LibraryPath />
+		<LibraryWPath />
+		<SourcePath />
+		<ExcludePath />
+		<OutDir>$(ProjectDir)..\Build\Unused\</OutDir>
+		<IntDir>$(ProjectDir)..\Build\Unused\</IntDir>
+		<NMakeBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Build.bat CrowdControl Win32 Shipping "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeBuildCommandLine>
+		<NMakeReBuildCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Rebuild.bat CrowdControl Win32 Shipping "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeReBuildCommandLine>
+		<NMakeCleanCommandLine>G:\Unreal\UE_4.5\Engine\Build\BatchFiles\Clean.bat CrowdControl Win32 Shipping "$(SolutionDir)$(ProjectName).uproject" -rocket</NMakeCleanCommandLine>
+		<NMakeOutput>..\..\Binaries\Win32\CrowdControl-Win32-Shipping.exe</NMakeOutput>
+	</PropertyGroup>
+	<PropertyGroup>
+		<NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);UE_GAME=1;IS_PROGRAM=0;UE_ROCKET=1;UNICODE;_UNICODE;__UNREAL__;IS_MONOLITHIC=1;WITH_ENGINE=1;WITH_UNREAL_DEVELOPER_TOOLS=0;WITH_COREUOBJECT=1;USE_STATS_WITHOUT_ENGINE=0;WITH_PLUGIN_SUPPORT=0;USE_LOGGING_IN_SHIPPING=0;UE_BUILD_MINIMAL=1;WITH_EDITOR=1;WITH_EDITORONLY_DATA=0;WITH_SERVER_CODE=1;UBT_COMPILED_PLATFORM=Win64;WIN32=1;_WIN32_WINNT=0x0600;WINVER=0x0600;PLATFORM_WINDOWS=1;NDEBUG=1;UE_BUILD_DEVELOPMENT=1;UE_ENGINE_DIRECTORY=G:/Unreal/UE_4.5/Engine/;UE_PROJECT_NAME=CrowdControl;ORIGINAL_FILE_NAME="CrowdControl.exe";CROWDCONTROL_API=;UE_ENABLE_ICU=1;WITH_STEAMWORKS=0;WITH_DIRECTXMATH=0;CORE_API=;COREUOBJECT_API=;WITH_PHYSX=1;WITH_APEX=1;WITH_RUNTIME_PHYSICS_COOKING;WITH_BOX2D=1;WITH_RECAST=1;ENGINE_API=;WITH_FREETYPE=1;SLATE_API=;INPUTCORE_API=;SLATECORE_API=;MESSAGING_API=;RENDERCORE_API=;RHI_API=;SHADERCORE_API=;ASSETREGISTRY_API=;ENGINEMESSAGES_API=;ENGINESETTINGS_API=;SYNTHBENCHMARK_API=;RENDERER_API=;AIMODULE_API=;UE_EDITOR=1;UNREALED_API=;BSPMODE_API=;DOCUMENTATION_API=;PROJECTS_API=;SANDBOXFILE_API=;EDITORSTYLE_API=;SOURCECONTROL_API=;UNREALEDMESSAGES_API=;BLUEPRINTGRAPH_API=;XAUDIO2_API=;USERFEEDBACK_API=;COLLECTIONMANAGER_API=;KISMET_API=</NMakePreprocessorDefinitions>
+		<NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);G:\Unreal\UE_4.5\Engine\Source;..\..\Source;G:\Unreal\ThirdParty\WarpWorld\include;..\Build\Win64\CrowdControl\Inc\CrowdControl;..\..\Source\CrowdControl\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Internationalization;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Async;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Concurrency;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Containers;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Delegates;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\GenericPlatform;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\HAL;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Logging;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Math;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Misc;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Modules;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Modules\Boilerplate;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\ProfilingDebugging;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Serialization;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Serialization\Json;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Serialization\Csv;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Stats;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Templates;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\UObject;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core\Public\Windows;G:\Unreal\UE_4.5\Engine\Source\Runtime\Core;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\CoreUObject;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject\Public\Blueprint;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject\Public\Misc;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject\Public\Serialization;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject\Public\Templates;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject\Public\UObject;G:\Unreal\UE_4.5\Engine\Source\Runtime\CoreUObject;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\Engine;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\AI;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\EdGraph;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\Features;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\Landscape;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\Net;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\Slate;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\Tests;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine\Public\AI\Navigation;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\Slate;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Application;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Commands;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Docking;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Layout;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\MultiBox;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Notifications;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Styling;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Text;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Views;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Text\Android;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Framework\Text\IOS;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Colors;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Docking;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Images;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Input;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Layout;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Navigation;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Notifications;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Text;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate\Public\Widgets\Views;G:\Unreal\UE_4.5\Engine\Source\Runtime\InputCore\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\InputCore;G:\Unreal\UE_4.5\Engine\Source\Runtime\InputCore\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\InputCore;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\SlateCore;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Animation;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Application;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Brushes;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Fonts;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Input;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Layout;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Logging;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Rendering;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Sound;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Styling;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Textures;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Types;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore\Public\Widgets;G:\Unreal\UE_4.5\Engine\Source\Runtime\SlateCore;G:\Unreal\UE_4.5\Engine\Source\Runtime\Slate;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\Messaging;G:\Unreal\UE_4.5\Engine\Source\Runtime\Messaging\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Messaging\Public\Common;G:\Unreal\UE_4.5\Engine\Source\Runtime\Messaging\Public\Interfaces;G:\Unreal\UE_4.5\Engine\Source\Runtime\Messaging;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\RenderCore;G:\Unreal\UE_4.5\Engine\Source\Runtime\RenderCore\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\RenderCore;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\RHI;G:\Unreal\UE_4.5\Engine\Source\Runtime\RHI\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\RHI;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\ShaderCore;G:\Unreal\UE_4.5\Engine\Source\Runtime\ShaderCore\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\ShaderCore;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\AssetRegistry;G:\Unreal\UE_4.5\Engine\Source\Runtime\AssetRegistry\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\AssetRegistry;G:\Unreal\UE_4.5\Engine\Source\Runtime\EngineMessages\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\EngineMessages;G:\Unreal\UE_4.5\Engine\Source\Runtime\EngineMessages\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\EngineMessages;G:\Unreal\UE_4.5\Engine\Source\Runtime\EngineSettings\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\EngineSettings;G:\Unreal\UE_4.5\Engine\Source\Runtime\EngineSettings\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\EngineSettings;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\SynthBenchmark;G:\Unreal\UE_4.5\Engine\Source\Developer\SynthBenchmark\Public;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\Renderer;G:\Unreal\UE_4.5\Engine\Source\Runtime\Renderer\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Renderer;G:\Unreal\UE_4.5\Engine\Source\Developer\SynthBenchmark;G:\Unreal\UE_4.5\Engine\Source\Runtime\AIModule\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\AIModule\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\AIModule;G:\Unreal\UE_4.5\Engine\Source\Runtime\AIModule;G:\Unreal\UE_4.5\Engine\Source\Runtime\Engine;..\..\Source\CrowdControl;..\Build\Win64\Inc\CrowdControl;G:\Unreal\UE_4.5\Engine\Source\Programs\UnrealLightmass\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\UnrealEd;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\Commandlets;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\Dialogs;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\DragAndDrop;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\Features;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\Kismet2;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\Layers;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\Tests;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd\Public\Toolkits;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\BspMode;G:\Unreal\UE_4.5\Engine\Source\Editor\BspMode\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\BspMode;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\Documentation;G:\Unreal\UE_4.5\Engine\Source\Editor\Documentation\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\Documentation;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\Projects;G:\Unreal\UE_4.5\Engine\Source\Runtime\Projects\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Projects\Public\Interfaces;G:\Unreal\UE_4.5\Engine\Source\Runtime\Projects;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\SandboxFile;G:\Unreal\UE_4.5\Engine\Source\Runtime\SandboxFile\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\SandboxFile;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\EditorStyle;G:\Unreal\UE_4.5\Engine\Source\Editor\EditorStyle\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\EditorStyle\Public\Classes;G:\Unreal\UE_4.5\Engine\Source\Editor\EditorStyle\Public\Interfaces;G:\Unreal\UE_4.5\Engine\Source\Editor\EditorStyle;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\SourceControl;G:\Unreal\UE_4.5\Engine\Source\Developer\SourceControl\Public;G:\Unreal\UE_4.5\Engine\Source\Developer\SourceControl\Public\Tests;G:\Unreal\UE_4.5\Engine\Source\Developer\SourceControl;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEdMessages\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\UnrealEdMessages;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEdMessages\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEdMessages;G:\Unreal\UE_4.5\Engine\Source\Editor\BlueprintGraph\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\BlueprintGraph;G:\Unreal\UE_4.5\Engine\Source\Editor\BlueprintGraph\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\BlueprintGraph;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\XAudio2;G:\Unreal\UE_4.5\Engine\Source\Runtime\Windows\XAudio2\Public;G:\Unreal\UE_4.5\Engine\Source\Runtime\Windows\XAudio2;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\UserFeedback;G:\Unreal\UE_4.5\Engine\Source\Editor\UserFeedback\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\UserFeedback;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\CollectionManager;G:\Unreal\UE_4.5\Engine\Source\Developer\CollectionManager\Public;G:\Unreal\UE_4.5\Engine\Source\Developer\CollectionManager;G:\Unreal\UE_4.5\Engine\Source\Editor\UnrealEd;G:\Unreal\UE_4.5\Engine\Source\Editor\Kismet\Classes;G:\Unreal\UE_4.5\Engine\Intermediate\Build\Win64\Inc\Kismet;G:\Unreal\UE_4.5\Engine\Source\Editor\Kismet\Public;G:\Unreal\UE_4.5\Engine\Source\Editor\Kismet\Public\WorkflowOrientedApp;G:\Unreal\UE_4.5\Engine\Source\Editor\Kismet;C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\INCLUDE;C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Windows Kits\8.1\include\shared;C:\Program Files (x86)\Windows Kits\8.1\include\um;C:\Program Files (x86)\Windows Kits\8.1\include\winrt;;</NMakeIncludeSearchPath>
+		<NMakeForcedIncludes>$(NMakeForcedIncludes)</NMakeForcedIncludes>
+		<NMakeAssemblySearchPath>$(NMakeAssemblySearchPath)</NMakeAssemblySearchPath>
+		<NMakeForcedUsingAssemblies>$(NMakeForcedUsingAssemblies)</NMakeForcedUsingAssemblies>
+	</PropertyGroup>
+	<ItemDefinitionGroup>
+	</ItemDefinitionGroup>
+	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+	<ImportGroup Label="ExtensionTargets">
+	</ImportGroup>
+</Project>

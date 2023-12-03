@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "4.5",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "CrowdControl",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

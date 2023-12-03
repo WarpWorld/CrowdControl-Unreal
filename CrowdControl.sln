@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CrowdControl", "Intermediate\ProjectFiles\CrowdControl.vcxproj", "{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DebugGame Editor|Windows = DebugGame Editor|Windows
+		DebugGame|Windows = DebugGame|Windows
+		Development Editor|Windows = Development Editor|Windows
+		Development|Windows = Development|Windows
+		Shipping|Windows = Shipping|Windows
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.DebugGame Editor|Windows.ActiveCfg = DebugGame_Editor|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.DebugGame Editor|Windows.Build.0 = DebugGame_Editor|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.DebugGame|Windows.ActiveCfg = DebugGame_RocketGame|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.DebugGame|Windows.Build.0 = DebugGame_RocketGame|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.Development Editor|Windows.ActiveCfg = Development_Editor|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.Development Editor|Windows.Build.0 = Development_Editor|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.Development|Windows.ActiveCfg = Development_RocketGame|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.Development|Windows.Build.0 = Development_RocketGame|x64
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.Shipping|Windows.ActiveCfg = Shipping_RocketGame|Win32
+		{CB5E38C7-3E28-4DE4-B30B-A61C9E8CF167}.Shipping|Windows.Build.0 = Shipping_RocketGame|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+	EndGlobalSection
+EndGlobal

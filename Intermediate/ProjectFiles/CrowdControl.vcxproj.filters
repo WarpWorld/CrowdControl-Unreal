@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ItemGroup>
+		<None Include="..\..\CrowdControl.uproject" />
+		<Filter Include="Source">
+			<UniqueIdentifier>{F8CA551A-B647-49CC-AE51-A8B85FB3996D}</UniqueIdentifier>
+		</Filter>
+		<None Include="..\..\Source\CrowdControl.Target.cs">
+			<Filter>Source</Filter>
+		</None >
+		<None Include="..\..\Source\CrowdControlEditor.Target.cs">
+			<Filter>Source</Filter>
+		</None >
+		<Filter Include="Config">
+			<UniqueIdentifier>{49BBE49B-8575-4C5B-8143-41983170C6DF}</UniqueIdentifier>
+		</Filter>
+		<None Include="..\..\Config\DefaultEditor.ini">
+			<Filter>Config</Filter>
+		</None >
+		<None Include="..\..\Config\DefaultEngine.ini">
+			<Filter>Config</Filter>
+		</None >
+		<None Include="..\..\Config\DefaultGame.ini">
+			<Filter>Config</Filter>
+		</None >
+		<None Include="..\..\Config\DefaultInput.ini">
+			<Filter>Config</Filter>
+		</None >
+		<Filter Include="Source\CrowdControl">
+			<UniqueIdentifier>{E944BC6A-22C8-4619-9D61-517431056156}</UniqueIdentifier>
+		</Filter>
+		<None Include="..\..\Source\CrowdControl\CrowdControl.Build.cs">
+			<Filter>Source\CrowdControl</Filter>
+		</None >
+		<Filter Include="Source\CrowdControl\Private">
+			<UniqueIdentifier>{1BFAA507-FA88-49B8-8631-21815F0929F6}</UniqueIdentifier>
+		</Filter>
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CCManager.cpp">
+			<Filter>Source\CrowdControl\Private</Filter>
+		</ClCompile >
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CrowdControl.cpp">
+			<Filter>Source\CrowdControl\Private</Filter>
+		</ClCompile >
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CrowdControlCharacter.cpp">
+			<Filter>Source\CrowdControl\Private</Filter>
+		</ClCompile >
+		<ClCompile Include="..\..\Source\CrowdControl\Private\CrowdControlGameMode.cpp">
+			<Filter>Source\CrowdControl\Private</Filter>
+		</ClCompile >
+		<ClCompile Include="..\..\Source\CrowdControl\Private\MyBlueprintFunctionLibrary.cpp">
+			<Filter>Source\CrowdControl\Private</Filter>
+		</ClCompile >
+		<ClCompile Include="..\..\Source\CrowdControl\Private\MyStreambufClass.cpp">
+			<Filter>Source\CrowdControl\Private</Filter>
+		</ClCompile >
+		<ClCompile Include="..\..\Source\CrowdControl\Private\UE4StreamBuf.cpp">
+			<Filter>Source\CrowdControl\Private</Filter>
+		</ClCompile >
+		<Filter Include="Source\CrowdControl\Public">
+			<UniqueIdentifier>{2E4EC13B-956A-4C96-94EC-4C6DD107EB09}</UniqueIdentifier>
+		</Filter>
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CCManager.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControl.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControlCharacter.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControlGameMode.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<ClInclude Include="..\..\Source\CrowdControl\Public\CrowdControlRunable.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<ClInclude Include="..\..\Source\CrowdControl\Public\MyBlueprintFunctionLibrary.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<ClInclude Include="..\..\Source\CrowdControl\Public\MyStreambufClass.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<ClInclude Include="..\..\Source\CrowdControl\Public\UE4StreamBuf.h">
+			<Filter>Source\CrowdControl\Public</Filter>
+		</ClInclude >
+		<Filter Include="Source\CrowdControl\Resources">
+			<UniqueIdentifier>{9717A0F3-1D5A-4934-93C9-1FFD3075AFDF}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="Source\CrowdControl\Resources\Windows">
+			<UniqueIdentifier>{60216933-E74F-4330-A0CE-F91114EA072B}</UniqueIdentifier>
+		</Filter>
+		<None Include="..\..\Source\CrowdControl\Resources\Windows\CrowdControl.ico">
+			<Filter>Source\CrowdControl\Resources\Windows</Filter>
+		</None >
+		<ResourceCompile Include="..\..\Source\CrowdControl\Resources\Windows\CrowdControl.rc">
+			<Filter>Source\CrowdControl\Resources\Windows</Filter>
+		</ResourceCompile >
+	</ItemGroup>
+</Project>
