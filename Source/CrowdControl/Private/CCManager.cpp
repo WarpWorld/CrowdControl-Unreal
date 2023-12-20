@@ -18,14 +18,17 @@ ACCManager::LoginTwitchType ACCManager::LoginTwitchFunction;
 ACCManager::LoginDiscordType ACCManager::LoginDiscordFunction;
 ACCManager::LoginYoutubeType ACCManager::LoginYoutubeFunction;
 
-ACCManager::AddBasicEffectType ACCManager::AddBasicEffect;
+typedef char*(*BasicEffectType)(char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
+BasicEffectType AddBasicEffect;
+typedef char*(*TimedEffectType)(char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray, float duration);
+TimedEffectType AddTimedEffect;
 
-char * ACCManager::StringToSend = new char[100];
-
-
-typedef char*(*_getCharArray)(char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
-
-_getCharArray m_getCharArrayFromDll;
+typedef char*(*ParameterEffectType)(char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
+ParameterEffectType AddParameterEffect;
+typedef char*(*AddParameterOptionType)(char* name, char* paramName, char** options);
+AddParameterOptionType AddParameterOption;
+typedef char*(*AddParamaterMinMaxType)(char* name, char* paramName, int min, int max);
+AddParamaterMinMaxType AddParamaterMinMax;
 
 ACCManager::ACCManager(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -56,7 +59,11 @@ void ACCManager::LoadDLL(FString GameKey)
 	FString DLLPath = FPaths::Combine(*FPaths::GameDir(), TEXT("Binaries/Win64/CrowdControl.dll"));
     ACCManager::DLLHandle = FPlatformProcess::GetDllHandle(*DLLPath);
 	
-	m_getCharArrayFromDll = (_getCharArray)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("AddNewBasicEffect"));
+	AddBasicEffect = (BasicEffectType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("AddNewBasicEffect"));
+	AddTimedEffect = (TimedEffectType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("AddNewTimedEffect"));
+	AddParameterEffect = (ParameterEffectType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("AddNewParameterEffect"));
+	AddParameterOption = (AddParameterOptionType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("AddParameterOption"));
+	AddParamaterMinMax = (AddParamaterMinMaxType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("AddParamaterMinMax"));
 
     if (ACCManager::DLLHandle != nullptr) { 
 		CommandFunction = (FP_Command)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("?CommandID@CrowdControlRunner@@QEAAHXZ"));
@@ -72,14 +79,14 @@ void ACCManager::LoadDLL(FString GameKey)
 		StringTest = (StringTestType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("?TestCharArray@CrowdControlRunner@@QEAAPEADXZ"));
 		
 		SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("?EngineSet@CrowdControlRunner@@QEAAXXZ"));
-
+		EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(ACCManager::DLLHandle, TEXT("?EngineEffect@CrowdControlRunner@@SAPEADXZ"));
 		SetEngine();
     }
     else {
         UE_LOG(LogTemp, Error, TEXT("Failed to load DLL"));
     }
-
-	ACCManager::EffectSuccess("Force Jump");
+	
+	//ACCManager::EffectSuccess("Force Jump");
 }
 
 void ACCManager::Connect() {
@@ -102,33 +109,41 @@ void ACCManager::LoginDiscord() {
 	ACCManager::LoginDiscordFunction();
 }
 
-std::string ACCManager::FStringToUtf8String(const FString& InString)
-{
-    FTCHARToUTF8 Utf8Converter(*InString); // Convert FString (UTF-16) to UTF-8
-    return std::string(Utf8Converter.Get(), Utf8Converter.Length());
+char** ACCManager::SplitCategories(TArray<FString> categories) {
+	char** categoriesArray = new char*[categories.Num() + 1];
+
+	for (int32 i = 0; i < categories.Num();  ++i) {
+		std::string tempString(TCHAR_TO_UTF8(*categories[i]));
+		categoriesArray[i] = new char[tempString.length() + 1];
+		strcpy_s(categoriesArray[i], tempString.length() + 1, tempString.c_str());
+	}
+
+	categoriesArray[categories.Num()] = nullptr;  
+
+	return categoriesArray; 
 }
 
 void ACCManager::Effect(TArray<FString> categories, FString name, FString description, int32 price, int32 maxRetries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable) {
-	char** categoriesArray = new char*[categories.Num()];
-
-    for (int32 i = 0; i < categories.Num(); ++i) {
-        std::string tempString(TCHAR_TO_UTF8(*categories[i]));
-        categoriesArray[i] = new char[tempString.length() + 1]; 
-        strcpy(categoriesArray[i], tempString.c_str());
-    }
-
-	m_getCharArrayFromDll(TCHAR_TO_UTF8(*name), TCHAR_TO_UTF8(*description), static_cast<int>(price), static_cast<int>(maxRetries), retryDelay, pendingDelay, sellable, visible, nonPoolable, 0, 0, categoriesArray);
+  	AddBasicEffect(TCHAR_TO_UTF8(*name), TCHAR_TO_UTF8(*description), static_cast<int>(price), static_cast<int>(maxRetries), retryDelay, pendingDelay, sellable, visible, nonPoolable, 0, 0, ACCManager::SplitCategories(categories));
 }
 
-void ACCManager::TimedEffect(FString id, FString description, int32 price, int32 maxRetries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, TArray<FString> categories, int32 duration) {
-	
+void ACCManager::TimedEffect(TArray<FString> categories, FString name, FString description, int32 price, int32 maxRetries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, float duration) {
+	AddTimedEffect(TCHAR_TO_UTF8(*name), TCHAR_TO_UTF8(*description), static_cast<int>(price), static_cast<int>(maxRetries), retryDelay, pendingDelay, sellable, visible, nonPoolable, 0, 0, ACCManager::SplitCategories(categories), duration);
 }
 
-void ACCManager::ParameterEffect(FString id, FString description, int32 price, int32 maxRetries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, TArray<FString> categories, TArray<UCrowdControlParameter*> parameters) {
-    
+void ACCManager::ParameterEffect(FString name, FString description, int32 price, int32 maxRetries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, TArray<FString> categories, TArray<UCrowdControlParameter*> parameters) {
+	AddParameterEffect(TCHAR_TO_UTF8(*name), TCHAR_TO_UTF8(*description), static_cast<int>(price), static_cast<int>(maxRetries), retryDelay, pendingDelay, sellable, visible, nonPoolable, 0, 0, ACCManager::SplitCategories(categories));
+ 
+	for (UCrowdControlParameter* parameter : parameters) {
+		if (parameter->_max != 0) {
+			AddParamaterMinMax(TCHAR_TO_UTF8(*name), TCHAR_TO_UTF8(*parameter->_name), static_cast<int>(parameter->_min), static_cast<int>(parameter->_max));
+		}
+		else {
+			AddParameterOption(TCHAR_TO_UTF8(*name), TCHAR_TO_UTF8(*parameter->_name), ACCManager::SplitCategories(parameter->_options));
+		}
+	}
 }
 
-	
 void ACCManager::EffectSuccess(FString id) {
 	ACCManager::Instance->OnEffectTrigger.Broadcast(id);
 }
@@ -157,6 +172,12 @@ void ACCManager::Update() {
     std::lock_guard<std::mutex> lock(QueueMutex);
 	
 	ACCManager::Result = CommandFunction();
+	
+	char * effectManifest = EngineEffect();
+
+	if (effectManifest[0] != '\0') {
+		UE_LOG(LogTemp, Log, TEXT("%s"), *FString(effectManifest));
+	}
 
 	char * chrStr = StringTest();
 	

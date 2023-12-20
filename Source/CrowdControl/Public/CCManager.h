@@ -60,9 +60,9 @@ class CROWDCONTROL_API ACCManager : public AActor {
 	
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	static void Effect(TArray<FString> categories, FString name = "Effect", FString description = "Desc", int32 price = 3, int32 maxRetries = 3, float retryDelay = 1.0f, float pendingDelay = 3.0f, bool sellable = true, bool visible = true, bool nonPoolable = false);
-	
+
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
-	static void TimedEffect(FString id, FString description, int32 price, int32 maxRetries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, TArray<FString> categories, int32 duration);
+	static void TimedEffect(TArray<FString> categories, FString name = "Effect", FString description = "Desc", int32 price = 3, int32 maxRetries = 3, float retryDelay = 1.0f, float pendingDelay = 3.0f, bool sellable = true, bool visible = true, bool nonPoolable = false, float duration = 5.0f);
 	
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	static void ParameterEffect(FString id, FString description, int32 price, int32 maxRetries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, TArray<FString> categories, TArray<UCrowdControlParameter*> parameters);
@@ -123,8 +123,8 @@ class CROWDCONTROL_API ACCManager : public AActor {
 	typedef char* (*StringTestType)();
 	StringTestType StringTest;
 	
-	typedef void (*AddBasicEffectType)(char* name, char* desc, int price); 
-	static AddBasicEffectType AddBasicEffect;
+	typedef char* (*EngineEffectType)();
+	EngineEffectType EngineEffect;
 	
 	UFUNCTION(BlueprintCallable, Category = "CrowdControl")
     static int32 CrowdControlResult();
@@ -137,9 +137,9 @@ class CROWDCONTROL_API ACCManager : public AActor {
 	virtual ~ACCManager();
 	
 	static char * StringToSend;  // Declare as a static array with a fixed size
-	
-	static std::string ACCManager::FStringToUtf8String(const FString& InString);
-	
+
+	static char** SplitCategories(TArray<FString> categories);
+
 protected:
 	static ACCManager* Instance;
 
