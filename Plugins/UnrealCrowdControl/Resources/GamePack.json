@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "releaseDate": "2024-09-24",
+    "platform": "PC",
+    "name": "Unreal Demo",
+    "connector": ["ExternalUnreal"],
+    "steam": { "id": 480 }, 
+    "description": "Navigate to Settings -> Crowd Control for setup!",
+    "guide": ""
+  },
+  "effects": {
+    "game": {
+      "jump": {
+        "name": "Jump",
+        "price": 0,
+        "description": "Force player to jump", 
+        "category": ["Coins"],
+        "group": ["singleplayer"]
+      },
+      "invert_controls": {
+        "name": "Invert Controls",
+        "price": 3,
+        "description": "Force player to jump",
+        "duration": { "value": 20 },
+        "category": ["Player", "Physics"],
+        "group": ["singleplayer"]
+      },
+      "give_coins": {
+        "name": {
+          "public": "Give Coins",
+          "sort": "Coins: Give"
+        },
+        "price": 1,
+        "description": "Give coins to the player!",
+        "quantity": {
+          "min": 1,
+          "max": 100
+        },
+        "category": ["Coins"],
+        "group": ["singleplayer"]
+      },
+      "change_color": {
+        "name": "Change Color",
+        "price": 2,
+        "description": "Give the player a fresh coat of paint!",
+        "category": ["Player"],
+        "group": ["singleplayer"],
+        "parameters": {
+          "color": {
+            "type": "options",
+            "name": "Color",
+            "options": {
+              "red": {
+                "name": "Red"
+              },
+              "blue": {
+                "name": "Blue"
+              },
+              "green": {
+                "name": "Green"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
