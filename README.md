@@ -7,6 +7,11 @@ For Websocket API: https://staging-developer.crowdcontrol.live/sockets/
 You will need to make your own Game Pack for Crowd Control servers or else you will have to use ones from other games or samples.
 Game Pack: https://staging-developer.crowdcontrol.live/sockets/pack.html
 
+
+This plugin branch should be supported for Unreal Version: 5.0-5.4
+
+For 4.27 Support check out the other branches.
+
 # Essential Assets
 - *UCrowdControlSubsystem*: Core component that handles connecting to Crowd Control and setups up bindings to specific events.
 
