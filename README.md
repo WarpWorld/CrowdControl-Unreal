@@ -8,9 +8,9 @@ You will need to make your own Game Pack for Crowd Control servers or else you w
 Game Pack: https://staging-developer.crowdcontrol.live/sockets/pack.html
 
 
-This plugin branch should be supported for Unreal Version: 5.0-5.4
+This plugin branch should be supported for Unreal Version:  4.27
 
-For 4.27 Support check out the other branches.
+For 5.0+ Support check out the other branches.
 
 # Essential Assets
 - *UCrowdControlSubsystem*: Core component that handles connecting to Crowd Control and setups up bindings to specific events.
