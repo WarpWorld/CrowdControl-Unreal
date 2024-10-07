@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DeveloperSettingsBackedByCVars.h"
+#include "Engine/DeveloperSettings.h"
 #include "CrowdControlDeveloperSettings.generated.h"
 
 /**
  * 
  */
 UCLASS(config = Game, defaultconfig, meta = (DisplayName = "CrowdControlSettings"))
-class UNREALCROWDCONTROL_API UCrowdControlDeveloperSettings : public UDeveloperSettingsBackedByCVars
+class UNREALCROWDCONTROL_API UCrowdControlDeveloperSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 

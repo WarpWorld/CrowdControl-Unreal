@@ -136,7 +136,7 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineSet@CrowdControlRunner@@QEAAXXZ"));
 		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineEffect@CrowdControlRunner@@SAPEADXZ"));
 		CC_SetEngine();
-
+    	
     	// Set GamePackID and GameName from developer settings
     	const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
     	if(Settings)
@@ -200,7 +200,7 @@ char** UCrowdControlSubsystem::SplitCategories(TArray<FString> categories) {
 	return categoriesArray; 
 }
 
-void UCrowdControlSubsystem::SetupWorldTimer(UWorld* World, const FWorldInitializationValues IVS)
+void UCrowdControlSubsystem::SetupWorldTimer(UWorld* World, const UWorld::InitializationValues Values)
 {
 	TickTimerHandle.Invalidate();
 
@@ -216,7 +216,7 @@ void UCrowdControlSubsystem::OnTimerManagerTick()
 		return;  // do nothing on pause
 
 	const float Delta = GetWorld()->GetDeltaSeconds();
-	if(Delta > UE_KINDA_SMALL_NUMBER)
+	if(Delta > KINDA_SMALL_NUMBER)
 	{
 		Tick(Delta);
 	}	
