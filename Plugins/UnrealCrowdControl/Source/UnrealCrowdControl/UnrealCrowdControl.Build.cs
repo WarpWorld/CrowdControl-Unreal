@@ -28,8 +28,5 @@ public class UnrealCrowdControl : ModuleRules
 			PublicDelayLoadDLLs.Add("libcrypto-3-x64.dll");
 			PublicDelayLoadDLLs.Add("cpprest_2_10d.dll");
 		}
-		
-		string ThirdPartyPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "../ThirdParty"));
-		PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "include"));  
 	}
 }

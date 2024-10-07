@@ -16,7 +16,7 @@ class UNREALCROWDCONTROL_API UCrowdControlDeveloperSettings : public UDeveloperS
 
 public:
 	UPROPERTY(config, EditAnywhere, Category=Config, meta=(Categories="Config"))
-	FString GamePackID = "Unreal Demo";
+	FString GamePackID = "UnrealDemo";
 
 	UPROPERTY(config, EditAnywhere, Category=Config, meta=(Categories="Config"))
 	FString GameName = "Unreal Demo";

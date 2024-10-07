@@ -66,6 +66,10 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	
 	// Defer setting the timer until after the world is initialized
 	FWorldDelegates::OnPostWorldInitialization.AddUObject(this, &UCrowdControlSubsystem::SetupWorldTimer);
+	if(GetWorld())
+	{
+		SetupWorldTimer(GetWorld(), UWorld::InitializationValues());
+	}
 }
 
 void UCrowdControlSubsystem::Deinitialize()
@@ -91,18 +95,12 @@ void UCrowdControlSubsystem::StartThread() {
 
 void UCrowdControlSubsystem::LoadDLL()
 {
-	/*if (DLLHandle != nullptr) {
-		return;
-	}*/
-
-	// FPaths::GameDir() deprecated in 4.15
 	FString DLLPath = FPaths::Combine(*FPaths::ProjectPluginsDir(), TEXT("UnrealCrowdControl/Binaries/Win64/CrowdControl.dll")); 
 	UE_LOG(LogCrowdControl, Log, TEXT("Loading Crowd Control DLL from path: %s"), *DLLPath);
 	
     DLLHandle = FPlatformProcess::GetDllHandle(*DLLPath);	
     if (DLLHandle != nullptr)
     {
-    	// TODO: check mangled names and if they are even necessary
     	CC_AddBasicEffect = (BasicEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddNewBasicEffect"));
     	CC_AddTimedEffect = (TimedEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddNewTimedEffect"));
     	CC_AddParameterEffect = (ParameterEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddNewParameterEffect"));
@@ -139,37 +137,12 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineEffect@CrowdControlRunner@@SAPEADXZ"));
 		CC_SetEngine();
 
-
-    	std::string* DllGameName = reinterpret_cast<std::string*>(FPlatformProcess::GetDllExport(DLLHandle, TEXT("?gameName@CrowdControlRunner@@2V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A")));
-    	std::string* DllGamePackID = reinterpret_cast<std::string*>(FPlatformProcess::GetDllExport(DLLHandle, TEXT("?gamePackID@CrowdControlRunner@@2V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A")));
-        
     	// Set GamePackID and GameName from developer settings
     	const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
     	if(Settings)
     	{
     		CC_SetGameNameAndPackID(TCHAR_TO_UTF8(*Settings->GameName), TCHAR_TO_UTF8(*Settings->GamePackID));
     	}
-    	// if(Settings && DllGameName)
-    	// {
-    	// 	//*DllGameName = std::string(TCHAR_TO_UTF8(*Settings->GameName));
-    	// 	//*DllGameName = "Unity Demo";
-    	// 	
-    	// 	std::string tempGameName = std::string(TCHAR_TO_UTF8(*Settings->GameName));
-    	// 	DllGameName->assign(tempGameName);
-    	// 	UE_LOG(LogCrowdControl, Warning, TEXT("gameName: %s"), *FString(DllGameName->c_str()));
-    	// }
-    	// if(Settings && DllGamePackID)
-    	// {
-    	// 	//*DllGamePackID = std::string(TCHAR_TO_UTF8(*Settings->GamePackID));
-    	// 	//*DllGamePackID = std::string(TCHAR_TO_ANSI(*Settings->GamePackID));
-    	// 	//*DllGamePackID = "UnityDemo";
-	    //
-    	// 	std::string tempGamePackID = std::string(TCHAR_TO_UTF8(*Settings->GamePackID));
-    	// 	DllGamePackID->assign(tempGamePackID);
-    	// 	UE_LOG(LogCrowdControl, Warning, TEXT("GamePackID: %s"), *FString(DllGamePackID->c_str()));
-    	// }
-
-
     }
     else
     {

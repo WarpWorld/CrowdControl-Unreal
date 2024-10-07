@@ -9,7 +9,10 @@ uint32 FCrowdControlRunnable::Run()
 		if (Manager && Manager->CC_CrowdControlFunction)
 		{
 			UE_LOG(LogCrowdControl, Log, TEXT("Running CrowdControlFunction"));
-			Manager->CC_CrowdControlFunction();
+			if(Manager->CC_CrowdControlFunction() < 0)
+			{
+				UE_LOG(LogCrowdControl, Error, TEXT("Running CrowdControlFunction failed!"));
+			}
 		}
 		return 0;
 	}

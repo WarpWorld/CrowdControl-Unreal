@@ -2,6 +2,7 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
+	"EngineVersion" : "5.4.0",
 	"FriendlyName": "UnrealCrowdControl",
 	"Description": "",
 	"Category": "Other",
