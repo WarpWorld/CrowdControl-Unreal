@@ -14,6 +14,7 @@ For 4.27 Support check out the other branches.
 
 # Essential Assets
 - *UCrowdControlSubsystem*: Core component that handles connecting to Crowd Control and setups up bindings to specific events.
+- *UCrowdControlDeveloperSettings*: Sets the GamePackID and GameName that is essential for connecting to Crowd Control servers with the proper game.
 
 # Example Content
 - *BP_CrowdControlExampleCharacter*: Example character with minimal implementation. Just to demonstrate event bindings in Blueprint.
