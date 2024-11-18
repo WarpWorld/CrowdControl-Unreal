@@ -107,6 +107,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	bool IsInitialized() const { return bIsInitialized; }
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void PrintEffectsToJsonFile();
 	
 	void StartThread();
 	
@@ -162,6 +165,7 @@ protected:
 	bool bIsInitialized = false;
 
 	FString LastSuccessfulEffectID;
+	FString MenuJson;
 
 	void* DLLHandle = nullptr;
 	std::mutex QueueMutex;

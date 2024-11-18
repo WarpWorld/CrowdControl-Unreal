@@ -8,6 +8,7 @@
 #include "CrowdControlFunctionLibrary.h"
 #include "CrowdControlLogChannels.h"
 #include "Logging/LogMacros.h"
+#include "JsonUtilities.h"
 
 
 UCrowdControlSubsystem::CrowdControlConnectFunctionType UCrowdControlSubsystem::CC_ConnectFunction;
@@ -61,6 +62,7 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	Runnable = nullptr;
+	MenuJson = "";
 	
 	LoadDLL();
 	
@@ -74,12 +76,37 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UCrowdControlSubsystem::Deinitialize()
 {
+	MenuJson = "";
 	if (Runnable) {
 		Runnable->EnsureCompletion();
 		Runnable.Reset();
 	}
 	
 	Super::Deinitialize();
+}
+
+
+void UCrowdControlSubsystem::PrintEffectsToJsonFile()
+{
+	// Check if MenuJson is not empty
+	if (MenuJson.IsEmpty())
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("MenuJson is empty. Nothing to write to file."));
+		return;
+	}
+
+	// Get the file path in the Saved folder
+	FString FilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CCMenu.json"));
+
+	// Overwrite the file if it already exists, or create it if it doesn't
+	if (FFileHelper::SaveStringToFile(MenuJson, *FilePath))
+	{
+		UE_LOG(LogCrowdControl, Log, TEXT("Successfully wrote MenuJson to file: %s"), *FilePath);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to write MenuJson to file: %s"), *FilePath);
+	}
 }
 
 void UCrowdControlSubsystem::StartThread() {
@@ -229,6 +256,35 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect setup call failed! Currently not initialized!"))
 		return;
 	}
+
+	// Convert Info to JSON
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField("id", Info.id);
+	JsonObject->SetStringField("description", Info.description);
+	JsonObject->SetNumberField("price", Info.price);
+	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
+	JsonObject->SetNumberField("retryDelay", Info.retryDelay);
+	JsonObject->SetNumberField("pendingDelay", Info.pendingDelay);
+	JsonObject->SetBoolField("sellable", Info.sellable);
+	JsonObject->SetBoolField("visible", Info.visible);
+	JsonObject->SetBoolField("nonPoolable", Info.nonPoolable);
+
+	// Assuming SplitCategories returns an array of strings
+	TArray<TSharedPtr<FJsonValue>> CategoriesArray;
+	for (const FString& Category : Info.categories)
+	{
+		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
+	}
+	JsonObject->SetArrayField("categories", CategoriesArray);
+
+	// Convert JSON to string
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
+	{
+		MenuJson += JsonString;
+		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
+	}
 	
 	CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.description), Info.price, Info.maxRetries, Info.retryDelay, Info.pendingDelay, Info.sellable, Info.visible, Info.nonPoolable, 0, 0, SplitCategories(Info.categories));
 }
@@ -240,6 +296,34 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect setup call failed! Currently not initialized!"))
 		return;
 	}
+	// Convert Info to JSON
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField("id", Info.id);
+	JsonObject->SetStringField("description", Info.description);
+	JsonObject->SetNumberField("price", Info.price);
+	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
+	JsonObject->SetNumberField("retryDelay", Info.retryDelay);
+	JsonObject->SetNumberField("pendingDelay", Info.pendingDelay);
+	JsonObject->SetBoolField("sellable", Info.sellable);
+	JsonObject->SetBoolField("visible", Info.visible);
+	JsonObject->SetBoolField("nonPoolable", Info.nonPoolable);
+
+	// Assuming SplitCategories returns an array of strings
+	TArray<TSharedPtr<FJsonValue>> CategoriesArray;
+	for (const FString& Category : Info.categories)
+	{
+		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
+	}
+	JsonObject->SetArrayField("categories", CategoriesArray);
+	JsonObject->SetNumberField("duration", Info.duration);
+	// Convert JSON to string
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
+	{
+		MenuJson += JsonString;
+		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
+	}
 	CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.description), Info.price, Info.maxRetries, Info.retryDelay, Info.pendingDelay, Info.sellable, Info.visible, Info.nonPoolable, 0, 0, SplitCategories(Info.categories), Info.duration);
 }
 
@@ -250,18 +334,59 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect setup call failed! Currently not initialized!"))
 		return;
 	}
+	// Convert Info to JSON
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField("id", Info.id);
+	JsonObject->SetStringField("description", Info.description);
+	JsonObject->SetNumberField("price", Info.price);
+	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
+	JsonObject->SetNumberField("retryDelay", Info.retryDelay);
+	JsonObject->SetNumberField("pendingDelay", Info.pendingDelay);
+	JsonObject->SetBoolField("sellable", Info.sellable);
+	JsonObject->SetBoolField("visible", Info.visible);
+	JsonObject->SetBoolField("nonPoolable", Info.nonPoolable);
+
+	// Assuming SplitCategories returns an array of strings
+	TArray<TSharedPtr<FJsonValue>> CategoriesArray;
+	for (const FString& Category : Info.categories)
+	{
+		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
+	}
+	JsonObject->SetArrayField("categories", CategoriesArray);
+	
 	CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.description), Info.price, Info.maxRetries, Info.retryDelay, Info.pendingDelay, Info.sellable, Info.visible, Info.nonPoolable, 0, 0, SplitCategories(Info.categories));
- 
+	TArray<TSharedPtr<FJsonValue>> ParametersArray;
 	for (const FCrowdControlParameter& parameter : Info.parameters)
 	{
+		TSharedPtr<FJsonObject> ParameterObject = MakeShareable(new FJsonObject);
+		ParameterObject->SetStringField("_id", parameter._id);
 		if (parameter._max != 0)
 		{
+			ParameterObject->SetNumberField("_min", parameter._min);
+			ParameterObject->SetNumberField("_max", parameter._max);
 			CC_AddParamaterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), parameter._min, parameter._max);
 		}
 		else
 		{
+			TArray<TSharedPtr<FJsonValue>> OptionsArray;
+			for (const FString& Option : parameter._options)
+			{
+				OptionsArray.Add(MakeShareable(new FJsonValueString(Option)));
+			}
+			ParameterObject->SetArrayField("_options", OptionsArray);
+
 			CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameter._options));
 		}
+		ParametersArray.Add(MakeShareable(new FJsonValueObject(ParameterObject)));
+	}
+	JsonObject->SetArrayField("parameters", ParametersArray);
+	// Convert JSON to string
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
+	{
+		MenuJson += JsonString;
+		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
 }
 
@@ -399,6 +524,7 @@ void UCrowdControlSubsystem::Tick(float DeltaTime) {
 
 UCrowdControlSubsystem::~UCrowdControlSubsystem()
 {
+	MenuJson = "";
     Disconnect();
 }
 
