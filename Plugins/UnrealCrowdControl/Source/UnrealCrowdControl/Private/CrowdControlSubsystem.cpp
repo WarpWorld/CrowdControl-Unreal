@@ -63,6 +63,7 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	Runnable = nullptr;
 	MenuJson = "";
+	GameJsonObject = MakeShareable(new FJsonObject);
 	
 	LoadDLL();
 	
@@ -77,10 +78,12 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UCrowdControlSubsystem::Deinitialize()
 {
 	MenuJson = "";
+	GameJsonObject.Reset();
 	if (Runnable) {
 		Runnable->EnsureCompletion();
 		Runnable.Reset();
 	}
+
 	
 	Super::Deinitialize();
 }
@@ -95,11 +98,34 @@ void UCrowdControlSubsystem::PrintEffectsToJsonFile()
 		return;
 	}
 
+	TSharedPtr<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject);
+
+
+	TSharedPtr<FJsonObject> EffectsJsonObject = MakeShareable(new FJsonObject);
+
+
+	EffectsJsonObject->SetObjectField("game", GameJsonObject);
+
+
+	RootJsonObject->SetObjectField("effects", EffectsJsonObject);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(RootJsonObject.ToSharedRef(), Writer))
+	{
+		MenuJson = JsonString; 
+		UE_LOG(LogCrowdControl, Log, TEXT("Effects JSON: %s"), *JsonString);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize effects JSON."));
+	}
+
 	// Get the file path in the Saved folder
 	FString FilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CCMenu.json"));
 
 	// Overwrite the file if it already exists, or create it if it doesn't
-	if (FFileHelper::SaveStringToFile(MenuJson, *FilePath))
+	if (FFileHelper::SaveStringToFile(JsonString, *FilePath))
 	{
 		UE_LOG(LogCrowdControl, Log, TEXT("Successfully wrote MenuJson to file: %s"), *FilePath);
 	}
@@ -259,7 +285,7 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 
 	// Convert Info to JSON
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-	JsonObject->SetStringField("id", Info.id);
+	JsonObject->SetStringField("name", Info.displayName);
 	JsonObject->SetStringField("description", Info.description);
 	JsonObject->SetNumberField("price", Info.price);
 	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
@@ -276,6 +302,8 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
 	}
 	JsonObject->SetArrayField("categories", CategoriesArray);
+
+	GameJsonObject->SetObjectField(Info.id, JsonObject);
 
 	// Convert JSON to string
 	FString JsonString;
@@ -298,7 +326,7 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 	}
 	// Convert Info to JSON
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-	JsonObject->SetStringField("id", Info.id);
+	JsonObject->SetStringField("name", Info.displayName);
 	JsonObject->SetStringField("description", Info.description);
 	JsonObject->SetNumberField("price", Info.price);
 	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
@@ -316,6 +344,7 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 	}
 	JsonObject->SetArrayField("categories", CategoriesArray);
 	JsonObject->SetNumberField("duration", Info.duration);
+	GameJsonObject->SetObjectField(Info.id, JsonObject);
 	// Convert JSON to string
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
@@ -336,7 +365,7 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 	}
 	// Convert Info to JSON
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-	JsonObject->SetStringField("id", Info.id);
+	JsonObject->SetStringField("name", Info.displayName);
 	JsonObject->SetStringField("description", Info.description);
 	JsonObject->SetNumberField("price", Info.price);
 	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
@@ -380,6 +409,7 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 		ParametersArray.Add(MakeShareable(new FJsonValueObject(ParameterObject)));
 	}
 	JsonObject->SetArrayField("parameters", ParametersArray);
+	GameJsonObject->SetObjectField(Info.id, JsonObject);
 	// Convert JSON to string
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);

@@ -42,8 +42,12 @@ struct FCrowdControlEffectInfo
 {
 	GENERATED_BODY()
 
+	//Must be lowercase, no spaces
 	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
 	FString id;
+
+	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
+	FString displayName;
 
 	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
 	FString description;

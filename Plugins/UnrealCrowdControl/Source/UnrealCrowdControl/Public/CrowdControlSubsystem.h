@@ -166,6 +166,7 @@ protected:
 
 	FString LastSuccessfulEffectID;
 	FString MenuJson;
+	TSharedPtr<FJsonObject> GameJsonObject;
 
 	void* DLLHandle = nullptr;
 	std::mutex QueueMutex;
