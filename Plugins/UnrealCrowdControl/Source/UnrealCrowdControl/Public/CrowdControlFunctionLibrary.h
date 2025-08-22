@@ -14,7 +14,7 @@ class UNREALCROWDCONTROL_API UCrowdControlFunctionLibrary : public UBlueprintFun
 public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Crowd Control")
-	static FCrowdControlParameter MakeOptionParameter(FString Id, TArray<FString> options);
+	static FCrowdControlParameter MakeOptionParameter(FString Id, FString name, ECrowdControlParamType type, TArray<FCrowdControlParamOption> options);
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Crowd Control")
 	static FCrowdControlParameter MakeMinMaxParameter(FString Id, int32 min, int32 max);

@@ -20,17 +20,17 @@ UCrowdControlSubsystem::LoginTwitchType UCrowdControlSubsystem::CC_LoginTwitchFu
 UCrowdControlSubsystem::LoginDiscordType UCrowdControlSubsystem::CC_LoginDiscordFunction;
 UCrowdControlSubsystem::LoginYoutubeType UCrowdControlSubsystem::CC_LoginYoutubeFunction;
 
-typedef void(*BasicEffectType)(char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
+typedef void(*BasicEffectType)(char* id, char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
 BasicEffectType CC_AddBasicEffect;
-typedef void(*TimedEffectType)(char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray, float duration);
+typedef void(*TimedEffectType)(char* id, char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray, float duration);
 TimedEffectType CC_AddTimedEffect;
 
-typedef void(*ParameterEffectType)(char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
+typedef void(*ParameterEffectType)(char* id, char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
 ParameterEffectType CC_AddParameterEffect;
 typedef void(*AddParameterOptionType)(char* name, char* paramName, char** options);
 AddParameterOptionType CC_AddParameterOption;
-typedef void(*AddParamaterMinMaxType)(char* name, char* paramName, int min, int max);
-AddParamaterMinMaxType CC_AddParamaterMinMax;
+typedef void(*AddParameterMinMaxType)(char* name, char* paramName, int min, int max);
+AddParameterMinMaxType CC_AddParameterMinMax;
 
 typedef void(*EffectSuccessFailureType)(char* name);
 EffectSuccessFailureType CC_EffectSuccess;
@@ -135,6 +135,36 @@ void UCrowdControlSubsystem::PrintEffectsToJsonFile()
 	}
 }
 
+
+FString UCrowdControlSubsystem::GetOriginID()
+{
+	return FString(UTF8_TO_TCHAR(CC_GetOriginID()));
+}
+
+
+FString UCrowdControlSubsystem::GetProfileType()
+{
+	return FString(UTF8_TO_TCHAR(CC_GetProfileType()));
+}
+
+
+FString UCrowdControlSubsystem::GetInteractionURL()
+{
+	return FString(UTF8_TO_TCHAR(CC_GetInteractionURL()));
+}
+
+
+FString UCrowdControlSubsystem::GetStreamerName()
+{
+	return FString(UTF8_TO_TCHAR(CC_GetStreamerName()));
+}
+
+
+bool UCrowdControlSubsystem::GetIsJWTTokenValid()
+{
+	return CC_IsJWTTokenValid();
+}
+
 void UCrowdControlSubsystem::StartThread() {
 	if (CC_CrowdControlFunction != nullptr) {
         UE_LOG(LogTemp, Warning, TEXT("Run fsunction loaded successfully"));
@@ -158,8 +188,8 @@ void UCrowdControlSubsystem::LoadDLL()
     	CC_AddTimedEffect = (TimedEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddNewTimedEffect"));
     	CC_AddParameterEffect = (ParameterEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddNewParameterEffect"));
     	CC_AddParameterOption = (AddParameterOptionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddParameterOption"));
-    	CC_AddParamaterMinMax = (AddParamaterMinMaxType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddParamaterMinMax"));
-    	ensure(CC_AddBasicEffect && CC_AddTimedEffect && CC_AddParameterEffect && CC_AddParameterOption && CC_AddParamaterMinMax);
+    	CC_AddParameterMinMax = (AddParameterMinMaxType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddParameterMinMax"));
+    	ensure(CC_AddBasicEffect && CC_AddTimedEffect && CC_AddParameterEffect && CC_AddParameterOption && CC_AddParameterMinMax);
     	
 		CC_CommandFunction = (FP_Command)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?CommandID@CrowdControlRunner@@QEAAHXZ"));
 		
@@ -185,6 +215,12 @@ void UCrowdControlSubsystem::LoadDLL()
     	
     	CC_SetGameNameAndPackID = (SetGameNameAndPackIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?SetGameNameAndPackID@CrowdControlRunner@@SAXPEAD0@Z"));
     	ensure(CC_SetGameNameAndPackID);
+
+		CC_GetOriginID = (GetOriginIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetOriginID"));
+		CC_GetProfileType = (GetProfileTypeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetProfileType"));
+		CC_GetInteractionURL = (GetInteractionURLType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetInteractionURL"));
+		CC_GetStreamerName = (GetStreamerNameType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetStreamerName"));
+		CC_IsJWTTokenValid = (IsJWTTokenValidType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("IsJWTTokenValid"));
     	
 		CC_SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineSet@CrowdControlRunner@@QEAAXXZ"));
 		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineEffect@CrowdControlRunner@@SAPEADXZ"));
@@ -288,22 +324,15 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 	JsonObject->SetStringField("name", Info.displayName);
 	JsonObject->SetStringField("description", Info.description);
 	JsonObject->SetNumberField("price", Info.price);
-	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
-	JsonObject->SetNumberField("retryDelay", Info.retryDelay);
-	JsonObject->SetNumberField("pendingDelay", Info.pendingDelay);
-	JsonObject->SetBoolField("sellable", Info.sellable);
-	JsonObject->SetBoolField("visible", Info.visible);
-	JsonObject->SetBoolField("nonPoolable", Info.nonPoolable);
-
 	// Assuming SplitCategories returns an array of strings
 	TArray<TSharedPtr<FJsonValue>> CategoriesArray;
-	for (const FString& Category : Info.categories)
+	for (const FString& Category : Info.category)
 	{
 		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
 	}
-	JsonObject->SetArrayField("categories", CategoriesArray);
-
+	JsonObject->SetArrayField("category", CategoriesArray);
 	GameJsonObject->SetObjectField(Info.id, JsonObject);
+	
 
 	// Convert JSON to string
 	FString JsonString;
@@ -314,7 +343,7 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
 	
-	CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.description), Info.price, Info.maxRetries, Info.retryDelay, Info.pendingDelay, Info.sellable, Info.visible, Info.nonPoolable, 0, 0, SplitCategories(Info.categories));
+	CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
 }
 
 void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo& Info)
@@ -329,21 +358,18 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 	JsonObject->SetStringField("name", Info.displayName);
 	JsonObject->SetStringField("description", Info.description);
 	JsonObject->SetNumberField("price", Info.price);
-	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
-	JsonObject->SetNumberField("retryDelay", Info.retryDelay);
-	JsonObject->SetNumberField("pendingDelay", Info.pendingDelay);
-	JsonObject->SetBoolField("sellable", Info.sellable);
-	JsonObject->SetBoolField("visible", Info.visible);
-	JsonObject->SetBoolField("nonPoolable", Info.nonPoolable);
 
 	// Assuming SplitCategories returns an array of strings
 	TArray<TSharedPtr<FJsonValue>> CategoriesArray;
-	for (const FString& Category : Info.categories)
+	for (const FString& Category : Info.category)
 	{
 		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
 	}
-	JsonObject->SetArrayField("categories", CategoriesArray);
-	JsonObject->SetNumberField("duration", Info.duration);
+	JsonObject->SetArrayField("category", CategoriesArray);
+	TSharedPtr<FJsonObject> JsonDurationObject = MakeShareable(new FJsonObject);
+	JsonDurationObject->SetNumberField("value", Info.duration);
+	JsonObject->SetObjectField("duration", JsonDurationObject);
+	
 	GameJsonObject->SetObjectField(Info.id, JsonObject);
 	// Convert JSON to string
 	FString JsonString;
@@ -353,7 +379,7 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 		MenuJson += JsonString;
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
-	CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.description), Info.price, Info.maxRetries, Info.retryDelay, Info.pendingDelay, Info.sellable, Info.visible, Info.nonPoolable, 0, 0, SplitCategories(Info.categories), Info.duration);
+	CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category), Info.duration);
 }
 
 void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEffectInfo& Info)
@@ -368,47 +394,50 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 	JsonObject->SetStringField("name", Info.displayName);
 	JsonObject->SetStringField("description", Info.description);
 	JsonObject->SetNumberField("price", Info.price);
-	JsonObject->SetNumberField("maxRetries", Info.maxRetries);
-	JsonObject->SetNumberField("retryDelay", Info.retryDelay);
-	JsonObject->SetNumberField("pendingDelay", Info.pendingDelay);
-	JsonObject->SetBoolField("sellable", Info.sellable);
-	JsonObject->SetBoolField("visible", Info.visible);
-	JsonObject->SetBoolField("nonPoolable", Info.nonPoolable);
 
 	// Assuming SplitCategories returns an array of strings
 	TArray<TSharedPtr<FJsonValue>> CategoriesArray;
-	for (const FString& Category : Info.categories)
+	for (const FString& Category : Info.category)	
 	{
 		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
 	}
-	JsonObject->SetArrayField("categories", CategoriesArray);
+	JsonObject->SetArrayField("category", CategoriesArray);
 	
-	CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.description), Info.price, Info.maxRetries, Info.retryDelay, Info.pendingDelay, Info.sellable, Info.visible, Info.nonPoolable, 0, 0, SplitCategories(Info.categories));
-	TArray<TSharedPtr<FJsonValue>> ParametersArray;
+	
+	CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+
+	if (Info.RequiresQuantity)
+	{
+		TSharedPtr<FJsonObject> QuantityObject = MakeShareable(new FJsonObject);
+		QuantityObject->SetNumberField("min", Info.quantity.GetLowerBoundValue());
+		QuantityObject->SetNumberField("max", Info.quantity.GetUpperBoundValue());
+		JsonObject->SetObjectField("quantity", QuantityObject);
+		CC_AddParameterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*FString("quantity")), Info.quantity.GetLowerBoundValue(), Info.quantity.GetUpperBoundValue());
+	}
+
+	TSharedPtr<FJsonObject> ParametersObject = MakeShareable(new FJsonObject);
 	for (const FCrowdControlParameter& parameter : Info.parameters)
 	{
 		TSharedPtr<FJsonObject> ParameterObject = MakeShareable(new FJsonObject);
-		ParameterObject->SetStringField("_id", parameter._id);
-		if (parameter._max != 0)
+		ParameterObject->SetStringField("name", parameter.name);
+		ParameterObject->SetStringField("type", parameter.type == ECrowdControlParamType::OPTIONS?"options":"hex-color");
+		if (parameter.type == ECrowdControlParamType::OPTIONS)
 		{
-			ParameterObject->SetNumberField("_min", parameter._min);
-			ParameterObject->SetNumberField("_max", parameter._max);
-			CC_AddParamaterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), parameter._min, parameter._max);
-		}
-		else
-		{
-			TArray<TSharedPtr<FJsonValue>> OptionsArray;
-			for (const FString& Option : parameter._options)
+			TSharedPtr<FJsonObject> ParameterOptionsObject = MakeShareable(new FJsonObject);
+			TArray<FString> parameterIDs;
+			for (const FCrowdControlParamOption& ObjectChoice : parameter._options)
 			{
-				OptionsArray.Add(MakeShareable(new FJsonValueString(Option)));
+				TSharedPtr<FJsonObject> ParameterOptionObject = MakeShareable(new FJsonObject);
+				ParameterOptionObject->SetStringField("name", ObjectChoice.DisplayName);
+				ParameterOptionsObject->SetObjectField(ObjectChoice.id, ParameterOptionObject);
+				parameterIDs.Add(ObjectChoice.id);
 			}
-			ParameterObject->SetArrayField("_options", OptionsArray);
-
-			CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameter._options));
+			ParameterObject->SetObjectField("options", ParameterOptionsObject);
+			CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameterIDs));
 		}
-		ParametersArray.Add(MakeShareable(new FJsonValueObject(ParameterObject)));
+		ParametersObject->SetObjectField(parameter._id, ParameterObject);
 	}
-	JsonObject->SetArrayField("parameters", ParametersArray);
+	JsonObject->SetObjectField("parameters", ParametersObject);
 	GameJsonObject->SetObjectField(Info.id, JsonObject);
 	// Convert JSON to string
 	FString JsonString;
@@ -497,18 +526,29 @@ void UCrowdControlSubsystem::Update() {
 			FString Name;
 			FString Id;
 			
+			
 			if (JsonObject->TryGetStringField(TEXT("name"), Name) && JsonObject->TryGetStringField(TEXT("id"), Id)) 
 			{
 				UE_LOG(LogCrowdControl, Log, TEXT("Effect Name: %s   Effect ID: %s"), *Name, *Id);
 
 				FString Duration, ParameterValue;
+				const TSharedPtr<FJsonObject>* ParamsObject;
+				int32 Quantity = 1;
 				if (JsonObject->TryGetStringField(TEXT("duration"), Duration) && Duration.IsNumeric())
 				{
-					OnTimedEffectTrigger.Broadcast(Id, Name, FCString::Atof(*Duration) / 1000);
+					OnTimedEffectTrigger.Broadcast(Id, Name, FCString::Atof(*Duration));
 				}
-				else if (JsonObject->TryGetStringField(TEXT("value"), ParameterValue))
+				else if (JsonObject->TryGetObjectField(TEXT("params"), ParamsObject))
 				{
-					OnParameterEffectTrigger.Broadcast(Id, Name, ParameterValue);
+					JsonObject->TryGetNumberField(TEXT("quantity"), Quantity);
+					FJsonObjectWrapper ParamsWrapped;
+					ParamsWrapped.JsonObject = *ParamsObject;
+					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped);
+				}
+				else if (JsonObject->TryGetNumberField(TEXT("quantity"), Quantity))
+				{
+					FJsonObjectWrapper ParamsWrapped;
+					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped);
 				}
 				else
 				{

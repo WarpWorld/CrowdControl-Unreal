@@ -6,12 +6,13 @@
 #include "CoreMinimal.h"
 #include "CrowdControlFunctionLibrary.h"
 #include "CrowdControlRunable.h"
+#include "Runtime/JsonUtilities/Public/JsonObjectWrapper.h"
 #include "CrowdControlSubsystem.generated.h"
 
 class UWorld;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTriggerEffect, FString, ID, FString, DisplayName);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTriggerTimedEffect, FString, ID, FString, DisplayName, float, Duration);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTriggerParameterEffect, FString, ID, FString, DisplayName, FString, Option);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnTriggerParameterEffect, FString, ID, FString, DisplayName, FString, OptionalQuantity, FJsonObjectWrapper, Params);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCommandIDChanged, int32, Value);
 
 
@@ -110,6 +111,21 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
 	void PrintEffectsToJsonFile();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	FString GetOriginID();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	FString GetProfileType();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	FString GetInteractionURL();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	FString GetStreamerName();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	bool GetIsJWTTokenValid();
 	
 	void StartThread();
 	
@@ -145,6 +161,21 @@ public:
 	
 	typedef char* (*EngineEffectType)();
 	EngineEffectType CC_EngineEffect;
+
+	typedef char* (*GetOriginIDType)();
+	GetOriginIDType CC_GetOriginID;
+
+	typedef char* (*GetProfileTypeType)();
+	GetProfileTypeType CC_GetProfileType;
+
+	typedef char* (*GetInteractionURLType)();
+	GetInteractionURLType CC_GetInteractionURL;
+
+	typedef char* (*GetStreamerNameType)();
+	GetStreamerNameType CC_GetStreamerName;
+
+	typedef bool (*IsJWTTokenValidType)();
+	IsJWTTokenValidType CC_IsJWTTokenValid;
 	
 	TUniquePtr<FCrowdControlRunnable> Runnable = nullptr;
 	

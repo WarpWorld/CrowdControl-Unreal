@@ -4,7 +4,22 @@
 
 #include "CrowdControlTypes.generated.h"
 
+UENUM(BlueprintType)
+enum class ECrowdControlParamType : uint8 {
+	OPTIONS = 0 UMETA(DisplayName = "options"),
+	HexColor = 1  UMETA(DisplayName = "hex-color"),
+};
 
+USTRUCT(BlueprintType)
+struct FCrowdControlParamOption
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
+	FString id;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
+	FString DisplayName;
+};
 
 USTRUCT(BlueprintType)
 struct FCrowdControlParameter
@@ -13,28 +28,31 @@ struct FCrowdControlParameter
 
 	FCrowdControlParameter()
 	{}
-	FCrowdControlParameter(FString name, TArray<FString> options)
-		: _id(name), _options(options), _min(0), _max(0)
+
+	FCrowdControlParameter(FString inId, FString inName, ECrowdControlParamType inType, TArray<FCrowdControlParamOption> inOptions)
+		: _id(inId), name(inName), type(inType), _options(inOptions)
 	{}
 
-	FCrowdControlParameter(FString name, int32 min, int32 max)
-		: _id(name), _min(min), _max(max)
+	FCrowdControlParameter(FString name)
+		: _id(name)
 	{}
 	
 	bool IsValid() const { return !_id.IsEmpty(); }
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
 	FString _id;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
+	FString name;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
+	ECrowdControlParamType type;
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
-	TArray<FString> _options;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
-	int32 _min = 0;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
-	int32 _max = 0;
+	TArray<FCrowdControlParamOption> _options;
 };
+
+
 
 
 USTRUCT(BlueprintType)
@@ -53,30 +71,11 @@ struct FCrowdControlEffectInfo
 	FString description;
 
 	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	int32 price = 0;
+	int32 price = 1;
 
-	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	int32 maxRetries = 0;
 	
 	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	float retryDelay = 0.f;
-	
-	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	float pendingDelay = 0.f;
-	
-	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	bool sellable = false;
-	
-	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	bool visible = false;
-	
-	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	bool nonPoolable = false;
-	
-	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
-	TArray<FString> categories;
-	
-	
+	TArray<FString> category;
 };
 
 USTRUCT(BlueprintType)
@@ -92,6 +91,12 @@ USTRUCT(BlueprintType)
 struct FCrowdControlParameterEffectInfo : public FCrowdControlEffectInfo
 {
 	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
+	bool RequiresQuantity = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
+	FInt32Range quantity = FInt32Range(1, 99);
 
 	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
 	TArray<FCrowdControlParameter> parameters;
