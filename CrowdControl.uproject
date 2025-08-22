@@ -21,6 +21,10 @@
 		{
 			"Name": "UnrealCrowdControl",
 			"Enabled": true
+		},
+		{
+			"Name": "JsonBlueprintUtilities",
+			"Enabled": true
 		}
 	]
 }
