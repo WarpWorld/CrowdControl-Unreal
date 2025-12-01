@@ -10,10 +10,6 @@ The Custom Effects API allows you to:
 - **Delete** specific custom effects (useful when players leave)
 - **Get** the current list of custom effects
 
-## Important: Automatic Cleanup on Authentication
-
-When a player first authenticates with Crowd Control, the system **automatically clears all custom effects** from previous sessions. This ensures a clean slate and prevents leftover effects from interfering with your current game session.
-
 ## Basic Usage Pattern
 
 ### 1. When a Player Joins

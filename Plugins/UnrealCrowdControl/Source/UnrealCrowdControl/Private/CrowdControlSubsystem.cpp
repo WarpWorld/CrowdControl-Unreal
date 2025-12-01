@@ -483,10 +483,10 @@ void UCrowdControlSubsystem::Update() {
 		{
 			UE_LOG(LogCrowdControl, Log, TEXT("Crowd Control authenticated (Connected: %d, Initialized: %d). Clearing any leftover custom effects from previous session."), 
 				bIsConnected, bIsInitialized);
-			if (CC_ClearCustomEffects != nullptr)
-			{
-				CC_ClearCustomEffects();
-			}
+			// if (CC_ClearCustomEffects != nullptr)
+			// {
+			// 	CC_ClearCustomEffects();
+			// }
 		}
 		
 		OnCommandIDChanged.Broadcast(CommandID);
