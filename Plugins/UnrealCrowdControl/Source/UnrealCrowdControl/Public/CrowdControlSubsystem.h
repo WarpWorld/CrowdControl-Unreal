@@ -108,8 +108,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	bool IsInitialized() const { return bIsInitialized; }
 
+	/**
+	 * Checks if Crowd Control is ready to use Custom Effects API.
+	 * Returns true only if both connected AND authenticated.
+	 * Use this before calling Custom Effects API functions.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Crowd Control")
+	bool IsReadyForCustomEffects() const { return bIsConnected && bIsInitialized; }
+
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
 	void PrintEffectsToJsonFile();
+
+	// Custom Effects API
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void UploadCustomEffects();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void ClearCustomEffects();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void DeleteCustomEffects(const TArray<FString>& EffectIDs);
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void RemoveCustomEffect(FString EffectID);
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	FString GetCustomEffects();
 	
 	void StartThread();
 	
@@ -145,6 +169,19 @@ public:
 	
 	typedef char* (*EngineEffectType)();
 	EngineEffectType CC_EngineEffect;
+
+	// Custom Effects API function pointers
+	typedef void (*UploadCustomEffectsType)(const char*);
+	UploadCustomEffectsType CC_UploadCustomEffects;
+
+	typedef void (*ClearCustomEffectsType)();
+	ClearCustomEffectsType CC_ClearCustomEffects;
+
+	typedef void (*DeleteCustomEffectsType)(const char*);
+	DeleteCustomEffectsType CC_DeleteCustomEffects;
+
+	typedef char* (*GetCustomEffectsType)();
+	GetCustomEffectsType CC_GetCustomEffects;
 	
 	TUniquePtr<FCrowdControlRunnable> Runnable = nullptr;
 	

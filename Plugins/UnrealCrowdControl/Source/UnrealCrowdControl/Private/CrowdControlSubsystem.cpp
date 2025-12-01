@@ -180,19 +180,17 @@ void UCrowdControlSubsystem::LoadDLL()
     	CC_ResetEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?ResetEffect@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
     	CC_PauseEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?PauseEffect@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
     	CC_ResumeEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?ResumeEffect@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
-    	CC_IsRunning = (EffectIsRunningType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?IsRunning@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
-		ensure(CC_StopEffect && CC_ResetEffect && CC_PauseEffect && CC_ResumeEffect && CC_IsRunning);
     	
-    	CC_SetGameNameAndPackID = (SetGameNameAndPackIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?SetGameNameAndPackID@CrowdControlRunner@@SAXPEAD0@Z"));
-    	ensure(CC_SetGameNameAndPackID);
+    	CC_SetGameNameAndPackID = (SetGameNameAndPackIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?SetGameNameAndPackID@CrowdControlRunner@@SAXPEBD0@Z"));
     	
-		CC_SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineSet@CrowdControlRunner@@QEAAXXZ"));
-		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineEffect@CrowdControlRunner@@SAPEADXZ"));
-		CC_SetEngine();
-
-    	// Set GamePackID and GameName from developer settings
+    	// Custom Effects API DLL exports
+    	CC_UploadCustomEffects = (UCrowdControlSubsystem::UploadCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("UploadCustomEffects"));
+    	CC_ClearCustomEffects = (UCrowdControlSubsystem::ClearCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ClearCustomEffects"));
+    	CC_DeleteCustomEffects = (UCrowdControlSubsystem::DeleteCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("DeleteCustomEffects"));
+    	CC_GetCustomEffects = (UCrowdControlSubsystem::GetCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetCustomEffects"));
+    	
     	const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
-    	if(Settings)
+    	if (Settings && CC_SetGameNameAndPackID)
     	{
     		CC_SetGameNameAndPackID(TCHAR_TO_UTF8(*Settings->GameName), TCHAR_TO_UTF8(*Settings->GamePackID));
     	}
@@ -474,9 +472,23 @@ void UCrowdControlSubsystem::Update() {
 	int32 CurrentResult = CC_CommandFunction();
 	if(CurrentResult != CommandID)
 	{
+		bool bWasInitialized = bIsInitialized;
 		CommandID = CurrentResult;
 		bIsConnected = CommandID >= 2;
 		bIsInitialized = CommandID > 2;
+		
+		// Clear custom effects when first authenticated to remove any leftover effects from previous sessions
+		// This ensures a clean slate when a new session starts
+		if (!bWasInitialized && bIsInitialized)
+		{
+			UE_LOG(LogCrowdControl, Log, TEXT("Crowd Control authenticated (Connected: %d, Initialized: %d). Clearing any leftover custom effects from previous session."), 
+				bIsConnected, bIsInitialized);
+			if (CC_ClearCustomEffects != nullptr)
+			{
+				CC_ClearCustomEffects();
+			}
+		}
+		
 		OnCommandIDChanged.Broadcast(CommandID);
 	}
 
@@ -550,6 +562,148 @@ void UCrowdControlSubsystem::Update() {
 
 void UCrowdControlSubsystem::Tick(float DeltaTime) {
     Update();
+}
+
+void UCrowdControlSubsystem::UploadCustomEffects()
+{
+	if (!bIsConnected)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomEffects call failed! Not connected to Crowd Control. Call Connect() first."));
+		return;
+	}
+
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomEffects call failed! Not authenticated. Please login to Crowd Control first."));
+		return;
+	}
+
+	if (CC_UploadCustomEffects == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("UploadCustomEffects DLL function not loaded!"));
+		return;
+	}
+
+	if (!GameJsonObject.IsValid())
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("GameJsonObject is not valid. No custom effects to upload."));
+		return;
+	}
+
+	// Convert GameJsonObject to JSON string
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(GameJsonObject.ToSharedRef(), Writer))
+	{
+		CC_UploadCustomEffects(TCHAR_TO_UTF8(*JsonString));
+		UE_LOG(LogCrowdControl, Log, TEXT("Uploaded custom effects: %s"), *JsonString);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize effects JSON for upload."));
+	}
+}
+
+void UCrowdControlSubsystem::ClearCustomEffects()
+{
+	if (!bIsConnected)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl ClearCustomEffects call failed! Not connected to Crowd Control. Call Connect() first."));
+		return;
+	}
+
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl ClearCustomEffects call failed! Not authenticated. Please login to Crowd Control first."));
+		return;
+	}
+
+	if (CC_ClearCustomEffects == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("ClearCustomEffects DLL function not loaded!"));
+		return;
+	}
+
+	CC_ClearCustomEffects();
+	UE_LOG(LogCrowdControl, Log, TEXT("Cleared all custom effects."));
+}
+
+void UCrowdControlSubsystem::DeleteCustomEffects(const TArray<FString>& EffectIDs)
+{
+	if (!bIsConnected)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl DeleteCustomEffects call failed! Not connected to Crowd Control. Call Connect() first."));
+		return;
+	}
+
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl DeleteCustomEffects call failed! Not authenticated. Please login to Crowd Control first."));
+		return;
+	}
+
+	if (CC_DeleteCustomEffects == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("DeleteCustomEffects DLL function not loaded!"));
+		return;
+	}
+
+	// Convert TArray<FString> to JSON array string
+	TArray<TSharedPtr<FJsonValue>> JsonArray;
+	for (const FString& EffectID : EffectIDs)
+	{
+		JsonArray.Add(MakeShareable(new FJsonValueString(EffectID)));
+	}
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(JsonArray, Writer))
+	{
+		CC_DeleteCustomEffects(TCHAR_TO_UTF8(*JsonString));
+		UE_LOG(LogCrowdControl, Log, TEXT("Deleted custom effects: %s"), *JsonString);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize effect IDs JSON for deletion."));
+	}
+}
+
+void UCrowdControlSubsystem::RemoveCustomEffect(FString EffectID)
+{
+	TArray<FString> EffectIDs;
+	EffectIDs.Add(EffectID);
+	DeleteCustomEffects(EffectIDs);
+}
+
+FString UCrowdControlSubsystem::GetCustomEffects()
+{
+	if (!bIsConnected)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl GetCustomEffects call failed! Not connected to Crowd Control. Call Connect() first."));
+		return FString();
+	}
+
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl GetCustomEffects call failed! Not authenticated. Please login to Crowd Control first."));
+		return FString();
+	}
+
+	if (CC_GetCustomEffects == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("GetCustomEffects DLL function not loaded!"));
+		return FString();
+	}
+
+	char* Result = CC_GetCustomEffects();
+	if (Result != nullptr)
+	{
+		FString ResultString = FString(UTF8_TO_TCHAR(Result));
+		UE_LOG(LogCrowdControl, Log, TEXT("Retrieved custom effects: %s"), *ResultString);
+		return ResultString;
+	}
+
+	return FString();
 }
 
 UCrowdControlSubsystem::~UCrowdControlSubsystem()
