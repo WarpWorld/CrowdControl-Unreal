@@ -36,16 +36,16 @@ void AMyGameMode::OnPlayerJoin(APlayerController* NewPlayer, FString UniqueID)
     KillEffect.displayName = "Kill " + NewPlayer->GetPlayerName();
     KillEffect.description = "Instantly kills " + NewPlayer->GetPlayerName();
     KillEffect.price = 100;
-    KillEffect.maxRetries = 3;
-    KillEffect.retryDelay = 5.0f;
-    KillEffect.pendingDelay = 0.0f;
     KillEffect.sellable = true;
     KillEffect.visible = true;
-    KillEffect.nonPoolable = false;
+    //KillEffect.nonPoolable = false;
+    //KillEffect.maxRetries = 3;
+    //KillEffect.retryDelay = 5.0f;
+    //KillEffect.pendingDelay = 0.0f;
     
     // Add categories for organization
     KillEffect.categories.Add(NewPlayer->GetPlayerName() + "Effects");
-    KillEffect.categories.Add("PlayerActions");
+    //KillEffect.categories.Add("PlayerActions");
     
     // Register the effect locally
     CC->SetupEffect(KillEffect);
