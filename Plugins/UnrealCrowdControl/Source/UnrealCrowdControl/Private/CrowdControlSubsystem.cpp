@@ -165,6 +165,95 @@ bool UCrowdControlSubsystem::GetIsJWTTokenValid()
 	return CC_IsJWTTokenValid();
 }
 
+void UCrowdControlSubsystem::UploadCustomEffects(const FString& EffectsJson)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomEffects call failed! Currently not initialized!"));
+		return;
+	}
+
+	if (CC_UploadCustomEffects != nullptr)
+	{
+		CC_UploadCustomEffects(TCHAR_TO_UTF8(*EffectsJson));
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomEffects called with JSON: %s"), *EffectsJson);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_UploadCustomEffects function pointer is null!"));
+	}
+}
+
+void UCrowdControlSubsystem::ClearCustomEffects()
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl ClearCustomEffects call failed! Currently not initialized!"));
+		return;
+	}
+
+	if (CC_ClearCustomEffects != nullptr)
+	{
+		CC_ClearCustomEffects();
+		UE_LOG(LogCrowdControl, Log, TEXT("ClearCustomEffects called"));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_ClearCustomEffects function pointer is null!"));
+	}
+}
+
+void UCrowdControlSubsystem::DeleteCustomEffects(const FString& EffectIDsJson)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl DeleteCustomEffects call failed! Currently not initialized!"));
+		return;
+	}
+
+	if (CC_DeleteCustomEffects != nullptr)
+	{
+		CC_DeleteCustomEffects(TCHAR_TO_UTF8(*EffectIDsJson));
+		UE_LOG(LogCrowdControl, Log, TEXT("DeleteCustomEffects called with JSON: %s"), *EffectIDsJson);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_DeleteCustomEffects function pointer is null!"));
+	}
+}
+
+FString UCrowdControlSubsystem::GetCustomEffects()
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl GetCustomEffects call failed! Currently not initialized!"));
+		return FString();
+	}
+
+	if (CC_GetCustomEffects != nullptr)
+	{
+		char* result = CC_GetCustomEffects();
+		if (result != nullptr && result[0] != '\0')
+		{
+			FString ResultString = FString(UTF8_TO_TCHAR(result));
+			// Note: The DLL allocates memory for the result, but we don't have a way to free it from Unreal
+			// This is a potential memory leak, but matches the pattern used by other functions like GetOriginID
+			UE_LOG(LogCrowdControl, Log, TEXT("GetCustomEffects returned: %s"), *ResultString);
+			return ResultString;
+		}
+		else
+		{
+			UE_LOG(LogCrowdControl, Warning, TEXT("GetCustomEffects returned empty result"));
+			return FString();
+		}
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_GetCustomEffects function pointer is null!"));
+		return FString();
+	}
+}
+
 void UCrowdControlSubsystem::StartThread() {
 	if (CC_CrowdControlFunction != nullptr) {
         UE_LOG(LogTemp, Warning, TEXT("Run fsunction loaded successfully"));
@@ -221,6 +310,12 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_GetInteractionURL = (GetInteractionURLType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetInteractionURL"));
 		CC_GetStreamerName = (GetStreamerNameType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetStreamerName"));
 		CC_IsJWTTokenValid = (IsJWTTokenValidType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("IsJWTTokenValid"));
+    	
+		CC_UploadCustomEffects = (UploadCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("UploadCustomEffects"));
+		CC_ClearCustomEffects = (ClearCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ClearCustomEffects"));
+		CC_DeleteCustomEffects = (DeleteCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("DeleteCustomEffects"));
+		CC_GetCustomEffects = (GetCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetCustomEffects"));
+		ensure(CC_UploadCustomEffects && CC_ClearCustomEffects && CC_DeleteCustomEffects && CC_GetCustomEffects);
     	
 		CC_SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineSet@CrowdControlRunner@@QEAAXXZ"));
 		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineEffect@CrowdControlRunner@@SAPEADXZ"));

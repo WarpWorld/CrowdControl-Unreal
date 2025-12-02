@@ -126,6 +126,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
 	bool GetIsJWTTokenValid();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void UploadCustomEffects(const FString& EffectsJson);
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void ClearCustomEffects();
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void DeleteCustomEffects(const FString& EffectIDsJson);
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	FString GetCustomEffects();
 	
 	void StartThread();
 	
@@ -176,6 +188,18 @@ public:
 
 	typedef bool (*IsJWTTokenValidType)();
 	IsJWTTokenValidType CC_IsJWTTokenValid;
+
+	typedef void (*UploadCustomEffectsType)(const char* effectsJson);
+	UploadCustomEffectsType CC_UploadCustomEffects;
+
+	typedef void (*ClearCustomEffectsType)();
+	ClearCustomEffectsType CC_ClearCustomEffects;
+
+	typedef void (*DeleteCustomEffectsType)(const char* effectIDsJson);
+	DeleteCustomEffectsType CC_DeleteCustomEffects;
+
+	typedef char* (*GetCustomEffectsType)();
+	GetCustomEffectsType CC_GetCustomEffects;
 	
 	TUniquePtr<FCrowdControlRunnable> Runnable = nullptr;
 	
