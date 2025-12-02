@@ -127,8 +127,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
 	bool GetIsJWTTokenValid();
 
+	// JSON string version - C++ only, not exposed to Blueprint (internal use)
+	void UploadCustomEffectsJson(const FString& EffectsJson);
+
+	// Simple Blueprint function - just pass your effect info struct and it uploads it
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", DisplayName = "Upload Custom Effect"))
+	void UploadCustomEffect(const FCrowdControlEffectInfo& EffectInfo);
+
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
-	void UploadCustomEffects(const FString& EffectsJson);
+	void UploadCustomTimedEffect(const FCrowdControlTimedEffectInfo& EffectInfo);
+
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
+	void UploadCustomParameterEffect(const FCrowdControlParameterEffectInfo& EffectInfo);
+
+	// Upload multiple effects in a single PUT request
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Upload multiple basic effects in a single PUT request"))
+	void UploadCustomEffectsArray(const TArray<FCrowdControlEffectInfo>& Effects);
+
+	// Upload multiple timed effects in a single PUT request
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Upload multiple timed effects in a single PUT request"))
+	void UploadCustomTimedEffectsArray(const TArray<FCrowdControlTimedEffectInfo>& Effects);
+
+	// Upload multiple parameter effects in a single PUT request
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Upload multiple parameter effects in a single PUT request"))
+	void UploadCustomParameterEffectsArray(const TArray<FCrowdControlParameterEffectInfo>& Effects);
 
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
 	void ClearCustomEffects();

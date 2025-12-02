@@ -165,22 +165,272 @@ bool UCrowdControlSubsystem::GetIsJWTTokenValid()
 	return CC_IsJWTTokenValid();
 }
 
-void UCrowdControlSubsystem::UploadCustomEffects(const FString& EffectsJson)
+// Helper function to convert FCrowdControlEffectInfo to JSON
+static TSharedPtr<FJsonObject> EffectInfoToJson(const FCrowdControlEffectInfo& Info)
+{
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField("name", Info.displayName);
+	JsonObject->SetStringField("description", Info.description);
+	JsonObject->SetNumberField("price", Info.price);
+	
+	TArray<TSharedPtr<FJsonValue>> CategoriesArray;
+	for (const FString& Category : Info.category)
+	{
+		CategoriesArray.Add(MakeShareable(new FJsonValueString(Category)));
+	}
+	JsonObject->SetArrayField("category", CategoriesArray);
+	
+	return JsonObject;
+}
+
+// Helper function to convert FCrowdControlTimedEffectInfo to JSON
+static TSharedPtr<FJsonObject> TimedEffectInfoToJson(const FCrowdControlTimedEffectInfo& Info)
+{
+	TSharedPtr<FJsonObject> JsonObject = EffectInfoToJson(Info);
+	
+	TSharedPtr<FJsonObject> DurationObject = MakeShareable(new FJsonObject);
+	DurationObject->SetNumberField("value", Info.duration);
+	JsonObject->SetObjectField("duration", DurationObject);
+	
+	return JsonObject;
+}
+
+// Helper function to convert FCrowdControlParameterEffectInfo to JSON
+static TSharedPtr<FJsonObject> ParameterEffectInfoToJson(const FCrowdControlParameterEffectInfo& Info)
+{
+	TSharedPtr<FJsonObject> JsonObject = EffectInfoToJson(Info);
+	
+	if (Info.RequiresQuantity)
+	{
+		TSharedPtr<FJsonObject> QuantityObject = MakeShareable(new FJsonObject);
+		QuantityObject->SetNumberField("min", Info.quantity.GetLowerBoundValue());
+		QuantityObject->SetNumberField("max", Info.quantity.GetUpperBoundValue());
+		JsonObject->SetObjectField("quantity", QuantityObject);
+	}
+	
+	TSharedPtr<FJsonObject> ParametersObject = MakeShareable(new FJsonObject);
+	for (const FCrowdControlParameter& parameter : Info.parameters)
+	{
+		TSharedPtr<FJsonObject> ParameterObject = MakeShareable(new FJsonObject);
+		ParameterObject->SetStringField("name", parameter.name);
+		ParameterObject->SetStringField("type", parameter.type == ECrowdControlParamType::OPTIONS ? "options" : "hex-color");
+		
+		if (parameter.type == ECrowdControlParamType::OPTIONS)
+		{
+			TSharedPtr<FJsonObject> ParameterOptionsObject = MakeShareable(new FJsonObject);
+			for (const FCrowdControlParamOption& option : parameter._options)
+			{
+				TSharedPtr<FJsonObject> OptionObject = MakeShareable(new FJsonObject);
+				OptionObject->SetStringField("name", option.DisplayName);
+				ParameterOptionsObject->SetObjectField(option.id, OptionObject);
+			}
+			ParameterObject->SetObjectField("options", ParameterOptionsObject);
+		}
+		
+		ParametersObject->SetObjectField(parameter._id, ParameterObject);
+	}
+	JsonObject->SetObjectField("parameters", ParametersObject);
+	
+	return JsonObject;
+}
+
+void UCrowdControlSubsystem::UploadCustomEffectsJson(const FString& EffectsJson)
 {
 	if (!bIsInitialized)
 	{
-		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomEffects call failed! Currently not initialized!"));
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomEffectsJson call failed! Currently not initialized!"));
 		return;
 	}
 
 	if (CC_UploadCustomEffects != nullptr)
 	{
 		CC_UploadCustomEffects(TCHAR_TO_UTF8(*EffectsJson));
-		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomEffects called with JSON: %s"), *EffectsJson);
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomEffectsJson called with JSON: %s"), *EffectsJson);
 	}
 	else
 	{
 		UE_LOG(LogCrowdControl, Error, TEXT("CC_UploadCustomEffects function pointer is null!"));
+	}
+}
+
+
+void UCrowdControlSubsystem::UploadCustomEffect(const FCrowdControlEffectInfo& EffectInfo)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomEffect call failed! Currently not initialized!"));
+		return;
+	}
+
+	TSharedPtr<FJsonObject> EffectsObject = MakeShareable(new FJsonObject);
+	TSharedPtr<FJsonObject> EffectJson = EffectInfoToJson(EffectInfo);
+	EffectsObject->SetObjectField(EffectInfo.id, EffectJson);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(EffectsObject.ToSharedRef(), Writer))
+	{
+		UploadCustomEffectsJson(JsonString);
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomEffect: Uploaded effect with ID: %s"), *EffectInfo.id);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize effect to JSON for ID: %s"), *EffectInfo.id);
+	}
+}
+
+void UCrowdControlSubsystem::UploadCustomTimedEffect(const FCrowdControlTimedEffectInfo& EffectInfo)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomTimedEffect call failed! Currently not initialized!"));
+		return;
+	}
+
+	TSharedPtr<FJsonObject> EffectsObject = MakeShareable(new FJsonObject);
+	TSharedPtr<FJsonObject> EffectJson = TimedEffectInfoToJson(EffectInfo);
+	EffectsObject->SetObjectField(EffectInfo.id, EffectJson);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(EffectsObject.ToSharedRef(), Writer))
+	{
+		UploadCustomEffectsJson(JsonString);
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomTimedEffect: Uploaded timed effect with ID: %s"), *EffectInfo.id);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize timed effect to JSON for ID: %s"), *EffectInfo.id);
+	}
+}
+
+void UCrowdControlSubsystem::UploadCustomParameterEffect(const FCrowdControlParameterEffectInfo& EffectInfo)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomParameterEffect call failed! Currently not initialized!"));
+		return;
+	}
+
+	TSharedPtr<FJsonObject> EffectsObject = MakeShareable(new FJsonObject);
+	TSharedPtr<FJsonObject> EffectJson = ParameterEffectInfoToJson(EffectInfo);
+	EffectsObject->SetObjectField(EffectInfo.id, EffectJson);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(EffectsObject.ToSharedRef(), Writer))
+	{
+		UploadCustomEffectsJson(JsonString);
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomParameterEffect: Uploaded parameter effect with ID: %s"), *EffectInfo.id);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize parameter effect to JSON for ID: %s"), *EffectInfo.id);
+	}
+}
+
+void UCrowdControlSubsystem::UploadCustomEffectsArray(const TArray<FCrowdControlEffectInfo>& Effects)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomEffectsArray call failed! Currently not initialized!"));
+		return;
+	}
+
+	if (Effects.Num() == 0)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("UploadCustomEffectsArray called with empty array"));
+		return;
+	}
+
+	TSharedPtr<FJsonObject> EffectsObject = MakeShareable(new FJsonObject);
+	
+	for (const FCrowdControlEffectInfo& Effect : Effects)
+	{
+		TSharedPtr<FJsonObject> EffectJson = EffectInfoToJson(Effect);
+		EffectsObject->SetObjectField(Effect.id, EffectJson);
+	}
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(EffectsObject.ToSharedRef(), Writer))
+	{
+		UploadCustomEffectsJson(JsonString);
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomEffectsArray: Uploaded %d effects in a single PUT request"), Effects.Num());
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize effects array to JSON"));
+	}
+}
+
+void UCrowdControlSubsystem::UploadCustomTimedEffectsArray(const TArray<FCrowdControlTimedEffectInfo>& Effects)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomTimedEffectsArray call failed! Currently not initialized!"));
+		return;
+	}
+
+	if (Effects.Num() == 0)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("UploadCustomTimedEffectsArray called with empty array"));
+		return;
+	}
+
+	TSharedPtr<FJsonObject> EffectsObject = MakeShareable(new FJsonObject);
+	
+	for (const FCrowdControlTimedEffectInfo& Effect : Effects)
+	{
+		TSharedPtr<FJsonObject> EffectJson = TimedEffectInfoToJson(Effect);
+		EffectsObject->SetObjectField(Effect.id, EffectJson);
+	}
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(EffectsObject.ToSharedRef(), Writer))
+	{
+		UploadCustomEffectsJson(JsonString);
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomTimedEffectsArray: Uploaded %d timed effects in a single PUT request"), Effects.Num());
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize timed effects array to JSON"));
+	}
+}
+
+void UCrowdControlSubsystem::UploadCustomParameterEffectsArray(const TArray<FCrowdControlParameterEffectInfo>& Effects)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl UploadCustomParameterEffectsArray call failed! Currently not initialized!"));
+		return;
+	}
+
+	if (Effects.Num() == 0)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("UploadCustomParameterEffectsArray called with empty array"));
+		return;
+	}
+
+	TSharedPtr<FJsonObject> EffectsObject = MakeShareable(new FJsonObject);
+	
+	for (const FCrowdControlParameterEffectInfo& Effect : Effects)
+	{
+		TSharedPtr<FJsonObject> EffectJson = ParameterEffectInfoToJson(Effect);
+		EffectsObject->SetObjectField(Effect.id, EffectJson);
+	}
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(EffectsObject.ToSharedRef(), Writer))
+	{
+		UploadCustomEffectsJson(JsonString);
+		UE_LOG(LogCrowdControl, Log, TEXT("UploadCustomParameterEffectsArray: Uploaded %d parameter effects in a single PUT request"), Effects.Num());
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize parameter effects array to JSON"));
 	}
 }
 
@@ -667,20 +917,41 @@ void UCrowdControlSubsystem::Update() {
 		}
 	}
 
-	char * chrStr = CC_StringTest();
+	char* chrStr = CC_StringTest();
 	
-	int firstCharAsInt = chrStr[0];
-	chrStr = chrStr + 1;
-	
-	if (firstCharAsInt == 65) {
-		UE_LOG(LogCrowdControl, Log, TEXT("%s"), *FString(chrStr));
-	} else if (firstCharAsInt == 66) {
-		UE_LOG(LogCrowdControl, Warning, TEXT("%s"), *FString(chrStr));
-	} else if (firstCharAsInt == 67) {
-		UE_LOG(LogCrowdControl, Error, TEXT("%s"), *FString(chrStr));
-	} else if (firstCharAsInt == 68) {
-		UE_LOG(LogCrowdControl, Log, TEXT("%s"), *FString(chrStr));
+	// Check for null pointer
+	if (chrStr == nullptr) {
+		return;
 	}
+	
+	// Check if string is empty
+	if (chrStr[0] == '\0') {
+		// Memory was allocated, but we should still free it
+		// Note: The DLL allocates this, but we don't have a way to free it safely
+		// This is a known limitation matching the pattern used by other functions
+		return;
+	}
+	
+	int firstCharAsInt = static_cast<unsigned char>(chrStr[0]);
+	const char* messageStr = chrStr + 1;
+	
+	// Verify the message string is valid before using it
+	if (messageStr != nullptr && messageStr[0] != '\0') {
+		FString MessageString = FString(UTF8_TO_TCHAR(messageStr));
+		
+		if (firstCharAsInt == 65) {
+			UE_LOG(LogCrowdControl, Log, TEXT("%s"), *MessageString);
+		} else if (firstCharAsInt == 66) {
+			UE_LOG(LogCrowdControl, Warning, TEXT("%s"), *MessageString);
+		} else if (firstCharAsInt == 67) {
+			UE_LOG(LogCrowdControl, Error, TEXT("%s"), *MessageString);
+		} else if (firstCharAsInt == 68) {
+			UE_LOG(LogCrowdControl, Log, TEXT("%s"), *MessageString);
+		}
+	}
+	
+	// Note: Memory allocated by DLL cannot be safely freed from Unreal
+	// This matches the pattern used by other functions like GetOriginID
 }
 
 void UCrowdControlSubsystem::Tick(float DeltaTime) {
