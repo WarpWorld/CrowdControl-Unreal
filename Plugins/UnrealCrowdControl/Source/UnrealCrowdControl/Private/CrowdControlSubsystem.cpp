@@ -463,13 +463,54 @@ void UCrowdControlSubsystem::DeleteCustomEffects(const FString& EffectIDsJson)
 
 	if (CC_DeleteCustomEffects != nullptr)
 	{
-		CC_DeleteCustomEffects(TCHAR_TO_UTF8(*EffectIDsJson));
-		UE_LOG(LogCrowdControl, Log, TEXT("DeleteCustomEffects called with JSON: %s"), *EffectIDsJson);
+		// If EffectIDsJson is empty, pass empty string (which will be treated as "delete all")
+		FString JsonToSend = EffectIDsJson.IsEmpty() ? FString() : EffectIDsJson;
+		CC_DeleteCustomEffects(TCHAR_TO_UTF8(*JsonToSend));
+		
+		if (EffectIDsJson.IsEmpty())
+		{
+			UE_LOG(LogCrowdControl, Log, TEXT("DeleteCustomEffects called with empty JSON - will delete all custom effects"));
+		}
+		else
+		{
+			UE_LOG(LogCrowdControl, Log, TEXT("DeleteCustomEffects called with JSON: %s"), *EffectIDsJson);
+		}
 	}
 	else
 	{
 		UE_LOG(LogCrowdControl, Error, TEXT("CC_DeleteCustomEffects function pointer is null!"));
 	}
+}
+
+void UCrowdControlSubsystem::DeleteCustomEffectsByIDs(const TArray<FString>& EffectIDs)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl DeleteCustomEffectsByIDs call failed! Currently not initialized!"));
+		return;
+	}
+
+	if (EffectIDs.Num() == 0)
+	{
+		// Empty array means delete all
+		DeleteCustomEffects(FString());
+		return;
+	}
+
+	// Convert array of strings to JSON array string
+	FString JsonString = TEXT("[");
+	for (int32 i = 0; i < EffectIDs.Num(); i++)
+	{
+		JsonString += TEXT("\"") + EffectIDs[i].Replace(TEXT("\""), TEXT("\\\"")) + TEXT("\"");
+		if (i < EffectIDs.Num() - 1)
+		{
+			JsonString += TEXT(",");
+		}
+	}
+	JsonString += TEXT("]");
+
+	DeleteCustomEffects(JsonString);
+	UE_LOG(LogCrowdControl, Log, TEXT("DeleteCustomEffectsByIDs called with %d effect IDs"), EffectIDs.Num());
 }
 
 FString UCrowdControlSubsystem::GetCustomEffects()
