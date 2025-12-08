@@ -10,9 +10,9 @@
 #include "CrowdControlSubsystem.generated.h"
 
 class UWorld;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTriggerEffect, FString, ID, FString, DisplayName);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTriggerTimedEffect, FString, ID, FString, DisplayName, float, Duration);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnTriggerParameterEffect, FString, ID, FString, DisplayName, FString, OptionalQuantity, FJsonObjectWrapper, Params);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTriggerEffect, FString, ID, FString, DisplayName, FString, EffectID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnTriggerTimedEffect, FString, ID, FString, DisplayName, float, Duration, FString, EffectID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnTriggerParameterEffect, FString, ID, FString, DisplayName, FString, OptionalQuantity, FJsonObjectWrapper, Params, FString, EffectID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCommandIDChanged, int32, Value);
 
 

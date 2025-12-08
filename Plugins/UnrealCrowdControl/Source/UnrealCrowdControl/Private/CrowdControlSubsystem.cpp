@@ -908,37 +908,44 @@ void UCrowdControlSubsystem::Update() {
 
 		if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid()) 
 		{
-			// Extract "id" and "name"
+			// Extract "id" (request ID), "name", and "effectID" (the actual effect ID like "lowgravity_1234")
 			FString Name;
 			FString Id;
+			FString EffectID;
 			
 			
 			if (JsonObject->TryGetStringField(TEXT("name"), Name) && JsonObject->TryGetStringField(TEXT("id"), Id)) 
 			{
-				UE_LOG(LogCrowdControl, Log, TEXT("Effect Name: %s   Effect ID: %s"), *Name, *Id);
+				// Extract effectID if available (for backwards compatibility with older DLL versions)
+				if (!JsonObject->TryGetStringField(TEXT("effectID"), EffectID))
+				{
+					EffectID = FString(); // Empty string if not available
+				}
+				
+				UE_LOG(LogCrowdControl, Log, TEXT("Effect Name: %s   Request ID: %s   Effect ID: %s"), *Name, *Id, *EffectID);
 
 				FString Duration, ParameterValue;
 				const TSharedPtr<FJsonObject>* ParamsObject;
 				int32 Quantity = 1;
 				if (JsonObject->TryGetStringField(TEXT("duration"), Duration) && Duration.IsNumeric())
 				{
-					OnTimedEffectTrigger.Broadcast(Id, Name, FCString::Atof(*Duration));
+					OnTimedEffectTrigger.Broadcast(Id, Name, FCString::Atof(*Duration), EffectID);
 				}
 				else if (JsonObject->TryGetObjectField(TEXT("params"), ParamsObject))
 				{
 					JsonObject->TryGetNumberField(TEXT("quantity"), Quantity);
 					FJsonObjectWrapper ParamsWrapped;
 					ParamsWrapped.JsonObject = *ParamsObject;
-					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped);
+					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped, EffectID);
 				}
 				else if (JsonObject->TryGetNumberField(TEXT("quantity"), Quantity))
 				{
 					FJsonObjectWrapper ParamsWrapped;
-					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped);
+					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped, EffectID);
 				}
 				else
 				{
-					OnEffectTrigger.Broadcast(Id, Name);
+					OnEffectTrigger.Broadcast(Id, Name, EffectID);
 				}
 				
 				if(LastSuccessfulEffectID != Id)
