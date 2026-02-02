@@ -453,7 +453,12 @@ void UCrowdControlSubsystem::ClearCustomEffects()
 	}
 }
 
-void UCrowdControlSubsystem::DeleteCustomEffects(const FString& EffectIDsJson)
+void UCrowdControlSubsystem::DeleteCustomEffects()
+{
+	DeleteCustomEffectsByJson(FString());
+}
+
+void UCrowdControlSubsystem::DeleteCustomEffectsByJson(const FString& EffectIDsJson)
 {
 	if (!bIsInitialized)
 	{
@@ -493,7 +498,7 @@ void UCrowdControlSubsystem::DeleteCustomEffectsByIDs(const TArray<FString>& Eff
 	if (EffectIDs.Num() == 0)
 	{
 		// Empty array means delete all
-		DeleteCustomEffects(FString());
+		DeleteCustomEffects();
 		return;
 	}
 
@@ -509,7 +514,7 @@ void UCrowdControlSubsystem::DeleteCustomEffectsByIDs(const TArray<FString>& Eff
 	}
 	JsonString += TEXT("]");
 
-	DeleteCustomEffects(JsonString);
+	DeleteCustomEffectsByJson(JsonString);
 	UE_LOG(LogCrowdControl, Log, TEXT("DeleteCustomEffectsByIDs called with %d effect IDs"), EffectIDs.Num());
 }
 
@@ -729,7 +734,14 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
 	
-	CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	if (CC_AddBasicEffect != nullptr)
+	{
+		CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_AddBasicEffect function pointer is null!"));
+	}
 }
 
 void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo& Info)
@@ -765,7 +777,14 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 		MenuJson += JsonString;
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
-	CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category), Info.duration);
+	if (CC_AddTimedEffect != nullptr)
+	{
+		CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category), Info.duration);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_AddTimedEffect function pointer is null!"));
+	}
 }
 
 void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEffectInfo& Info)
@@ -790,7 +809,14 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 	JsonObject->SetArrayField("category", CategoriesArray);
 	
 	
-	CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	if (CC_AddParameterEffect != nullptr)
+	{
+		CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_AddParameterEffect function pointer is null!"));
+	}
 
 	if (Info.RequiresQuantity)
 	{
@@ -798,7 +824,14 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 		QuantityObject->SetNumberField("min", Info.quantity.GetLowerBoundValue());
 		QuantityObject->SetNumberField("max", Info.quantity.GetUpperBoundValue());
 		JsonObject->SetObjectField("quantity", QuantityObject);
-		CC_AddParameterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*FString("quantity")), Info.quantity.GetLowerBoundValue(), Info.quantity.GetUpperBoundValue());
+		if (CC_AddParameterMinMax != nullptr)
+		{
+			CC_AddParameterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*FString("quantity")), Info.quantity.GetLowerBoundValue(), Info.quantity.GetUpperBoundValue());
+		}
+		else
+		{
+			UE_LOG(LogCrowdControl, Error, TEXT("CC_AddParameterMinMax function pointer is null!"));
+		}
 	}
 
 	TSharedPtr<FJsonObject> ParametersObject = MakeShareable(new FJsonObject);
@@ -819,7 +852,14 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 				parameterIDs.Add(ObjectChoice.id);
 			}
 			ParameterObject->SetObjectField("options", ParameterOptionsObject);
-			CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameterIDs));
+			if (CC_AddParameterOption != nullptr)
+			{
+				CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameterIDs));
+			}
+			else
+			{
+				UE_LOG(LogCrowdControl, Error, TEXT("CC_AddParameterOption function pointer is null!"));
+			}
 		}
 		ParametersObject->SetObjectField(parameter._id, ParameterObject);
 	}
@@ -886,6 +926,12 @@ void UCrowdControlSubsystem::StopEffect(FString id)
 void UCrowdControlSubsystem::Update() {
     std::lock_guard<std::mutex> lock(QueueMutex);
 	
+	if (CC_CommandFunction == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_CommandFunction function pointer is null!"));
+		return;
+	}
+	
 	int32 CurrentResult = CC_CommandFunction();
 	if(CurrentResult != CommandID)
 	{
@@ -896,8 +942,14 @@ void UCrowdControlSubsystem::Update() {
 	}
 
 	// Check Queued events
+	if (CC_EngineEffect == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_EngineEffect function pointer is null!"));
+		return;
+	}
+	
 	char * effectManifest = CC_EngineEffect();
-	if (effectManifest[0] != '\0')
+	if (effectManifest != nullptr && effectManifest[0] != '\0')
 	{
 		UE_LOG(LogCrowdControl, Verbose, TEXT("%s"), *FString(effectManifest));
 		FString JsonString = FString(effectManifest);
@@ -965,26 +1017,31 @@ void UCrowdControlSubsystem::Update() {
 		}
 	}
 
-	char* chrStr = CC_StringTest();
+	if (CC_StringTest == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_StringTest function pointer is null!"));
+		return;
+	}
+	
+	char * chrStr = CC_StringTest();
 	
 	// Check for null pointer
-	if (chrStr == nullptr) {
+	if (chrStr == nullptr)
+	{
 		return;
 	}
 	
 	// Check if string is empty
-	if (chrStr[0] == '\0') {
-		// Memory was allocated, but we should still free it
-		// Note: The DLL allocates this, but we don't have a way to free it safely
-		// This is a known limitation matching the pattern used by other functions
+	if (chrStr[0] == '\0')
+	{
 		return;
 	}
 	
 	int firstCharAsInt = static_cast<unsigned char>(chrStr[0]);
 	const char* messageStr = chrStr + 1;
 	
-	// Verify the message string is valid before using it
-	if (messageStr != nullptr && messageStr[0] != '\0') {
+	if (messageStr != nullptr && messageStr[0] != '\0')
+	{
 		FString MessageString = FString(UTF8_TO_TCHAR(messageStr));
 		
 		if (firstCharAsInt == 65) {
@@ -997,9 +1054,6 @@ void UCrowdControlSubsystem::Update() {
 			UE_LOG(LogCrowdControl, Log, TEXT("%s"), *MessageString);
 		}
 	}
-	
-	// Note: Memory allocated by DLL cannot be safely freed from Unreal
-	// This matches the pattern used by other functions like GetOriginID
 }
 
 void UCrowdControlSubsystem::Tick(float DeltaTime) {
