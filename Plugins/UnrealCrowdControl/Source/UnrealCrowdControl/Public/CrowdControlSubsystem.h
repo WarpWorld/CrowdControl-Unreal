@@ -185,10 +185,10 @@ public:
 	SetEngineType CC_SetEngine;
 
 	typedef int (*FP_Command)();
-	FP_Command CC_CommandFunction;
+	static FP_Command CC_CommandFunction;
 	
 	typedef void (*ResetCommandType)();
-	ResetCommandType CC_ResetCommand;
+	static ResetCommandType CC_ResetCommand;
 	
 	typedef void (*LoginTwitchType)();
 	static LoginTwitchType CC_LoginTwitchFunction;
@@ -262,3 +262,5 @@ protected:
 	void Tick(float DeltaTime);
 	int32 CommandID; 
 };
+
+
