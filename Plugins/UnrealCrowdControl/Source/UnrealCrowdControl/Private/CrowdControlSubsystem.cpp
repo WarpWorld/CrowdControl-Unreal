@@ -14,7 +14,8 @@
 UCrowdControlSubsystem::CrowdControlConnectFunctionType UCrowdControlSubsystem::CC_ConnectFunction;
 UCrowdControlSubsystem::CrowdControlDisconnectFunctionType UCrowdControlSubsystem::CC_DisconnectFunction;
 UCrowdControlSubsystem::CrowdControlFunctionType UCrowdControlSubsystem::CC_CrowdControlFunction;
-
+UCrowdControlSubsystem::FP_Command UCrowdControlSubsystem::CC_CommandFunction;
+UCrowdControlSubsystem::ResetCommandType UCrowdControlSubsystem::CC_ResetCommand;
 
 UCrowdControlSubsystem::LoginTwitchType UCrowdControlSubsystem::CC_LoginTwitchFunction;
 UCrowdControlSubsystem::LoginDiscordType UCrowdControlSubsystem::CC_LoginDiscordFunction;
@@ -453,7 +454,12 @@ void UCrowdControlSubsystem::ClearCustomEffects()
 	}
 }
 
-void UCrowdControlSubsystem::DeleteCustomEffects(const FString& EffectIDsJson)
+void UCrowdControlSubsystem::DeleteCustomEffects()
+{
+	DeleteCustomEffectsByJson(FString());
+}
+
+void UCrowdControlSubsystem::DeleteCustomEffectsByJson(const FString& EffectIDsJson)
 {
 	if (!bIsInitialized)
 	{
@@ -493,7 +499,7 @@ void UCrowdControlSubsystem::DeleteCustomEffectsByIDs(const TArray<FString>& Eff
 	if (EffectIDs.Num() == 0)
 	{
 		// Empty array means delete all
-		DeleteCustomEffects(FString());
+		DeleteCustomEffects();
 		return;
 	}
 
@@ -509,7 +515,7 @@ void UCrowdControlSubsystem::DeleteCustomEffectsByIDs(const TArray<FString>& Eff
 	}
 	JsonString += TEXT("]");
 
-	DeleteCustomEffects(JsonString);
+	DeleteCustomEffectsByJson(JsonString);
 	UE_LOG(LogCrowdControl, Log, TEXT("DeleteCustomEffectsByIDs called with %d effect IDs"), EffectIDs.Num());
 }
 
@@ -547,7 +553,7 @@ FString UCrowdControlSubsystem::GetCustomEffects()
 
 void UCrowdControlSubsystem::StartThread() {
 	if (CC_CrowdControlFunction != nullptr) {
-        UE_LOG(LogTemp, Warning, TEXT("Run fsunction loaded successfully"));
+        UE_LOG(LogTemp, Warning, TEXT("Run function loaded successfully"));
 		Runnable = MakeUnique<FCrowdControlRunnable>(this);
 		Runnable->StartThread();
     }
@@ -571,29 +577,29 @@ void UCrowdControlSubsystem::LoadDLL()
     	CC_AddParameterMinMax = (AddParameterMinMaxType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("AddParameterMinMax"));
     	ensure(CC_AddBasicEffect && CC_AddTimedEffect && CC_AddParameterEffect && CC_AddParameterOption && CC_AddParameterMinMax);
     	
-		CC_CommandFunction = (FP_Command)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?CommandID@CrowdControlRunner@@QEAAHXZ"));
+		CC_CommandFunction = (FP_Command)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetCommandID"));
 		
-		CC_CrowdControlFunction = (CrowdControlFunctionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?Run@CrowdControlRunner@@QEAAHXZ"));
-		CC_ConnectFunction = (CrowdControlConnectFunctionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?Connect@CrowdControlRunner@@SAXXZ"));
-		CC_DisconnectFunction = (CrowdControlDisconnectFunctionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?Disconnect@CrowdControlRunner@@SAXXZ"));
+		CC_CrowdControlFunction = (CrowdControlFunctionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("RunCrowdControl"));
+		CC_ConnectFunction = (CrowdControlConnectFunctionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ConnectCrowdControl"));
+		CC_DisconnectFunction = (CrowdControlDisconnectFunctionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("DisconnectCrowdControl"));
 		
-		CC_ResetCommand = (ResetCommandType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?ResetCommandCode@CrowdControlRunner@@QEAAXXZ"));
-		CC_LoginTwitchFunction = (LoginTwitchType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?LoginTwitch@CrowdControlRunner@@SAXXZ"));
-		CC_LoginDiscordFunction = (LoginDiscordType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?LoginDiscord@CrowdControlRunner@@SAXXZ"));
-		CC_LoginYoutubeFunction = (LoginYoutubeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?LoginYoutube@CrowdControlRunner@@SAXXZ"));
-		CC_StringTest = (StringTestType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?TestCharArray@CrowdControlRunner@@QEAAPEADXZ"));
+		CC_ResetCommand = (ResetCommandType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ResetCommand"));
+		CC_LoginTwitchFunction = (LoginTwitchType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("LoginTwitch"));
+		CC_LoginDiscordFunction = (LoginDiscordType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("LoginDiscord"));
+		CC_LoginYoutubeFunction = (LoginYoutubeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("LoginYoutube"));
+		CC_StringTest = (StringTestType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetQueuedMessage"));
 
     	CC_EffectSuccess = (EffectSuccessFailureType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectSuccess"));
 		CC_EffectFailure = (EffectSuccessFailureType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailure"));
     	
-    	CC_StopEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?StopEffect@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
-    	CC_ResetEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?ResetEffect@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
-    	CC_PauseEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?PauseEffect@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
-    	CC_ResumeEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?ResumeEffect@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
-    	CC_IsRunning = (EffectIsRunningType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?IsRunning@CrowdControlRunner@@SA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"));
+    	CC_StopEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StopEffectById"));
+    	CC_ResetEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ResetEffectById"));
+    	CC_PauseEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("PauseEffectById"));
+    	CC_ResumeEffect = (EffectStatusChangeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ResumeEffectById"));
+    	CC_IsRunning = (EffectIsRunningType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("IsEffectRunning"));
 		ensure(CC_StopEffect && CC_ResetEffect && CC_PauseEffect && CC_ResumeEffect && CC_IsRunning);
     	
-    	CC_SetGameNameAndPackID = (SetGameNameAndPackIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?SetGameNameAndPackID@CrowdControlRunner@@SAXPEAD0@Z"));
+    	CC_SetGameNameAndPackID = (SetGameNameAndPackIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetGameNameAndPackId"));
     	ensure(CC_SetGameNameAndPackID);
 
 		CC_GetOriginID = (GetOriginIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetOriginID"));
@@ -608,8 +614,8 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_GetCustomEffects = (GetCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetCustomEffects"));
 		ensure(CC_UploadCustomEffects && CC_ClearCustomEffects && CC_DeleteCustomEffects && CC_GetCustomEffects);
     	
-		CC_SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineSet@CrowdControlRunner@@QEAAXXZ"));
-		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("?EngineEffect@CrowdControlRunner@@SAPEADXZ"));
+		CC_SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetEngine"));
+		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetEngineEffect"));
 		CC_SetEngine();
 
     	// Set GamePackID and GameName from developer settings
@@ -729,7 +735,14 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
 	
-	CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	if (CC_AddBasicEffect != nullptr)
+	{
+		CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_AddBasicEffect function pointer is null!"));
+	}
 }
 
 void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo& Info)
@@ -765,7 +778,14 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 		MenuJson += JsonString;
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
-	CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category), Info.duration);
+	if (CC_AddTimedEffect != nullptr)
+	{
+		CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category), Info.duration);
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_AddTimedEffect function pointer is null!"));
+	}
 }
 
 void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEffectInfo& Info)
@@ -790,7 +810,14 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 	JsonObject->SetArrayField("category", CategoriesArray);
 	
 	
-	CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	if (CC_AddParameterEffect != nullptr)
+	{
+		CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_AddParameterEffect function pointer is null!"));
+	}
 
 	if (Info.RequiresQuantity)
 	{
@@ -798,7 +825,14 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 		QuantityObject->SetNumberField("min", Info.quantity.GetLowerBoundValue());
 		QuantityObject->SetNumberField("max", Info.quantity.GetUpperBoundValue());
 		JsonObject->SetObjectField("quantity", QuantityObject);
-		CC_AddParameterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*FString("quantity")), Info.quantity.GetLowerBoundValue(), Info.quantity.GetUpperBoundValue());
+		if (CC_AddParameterMinMax != nullptr)
+		{
+			CC_AddParameterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*FString("quantity")), Info.quantity.GetLowerBoundValue(), Info.quantity.GetUpperBoundValue());
+		}
+		else
+		{
+			UE_LOG(LogCrowdControl, Error, TEXT("CC_AddParameterMinMax function pointer is null!"));
+		}
 	}
 
 	TSharedPtr<FJsonObject> ParametersObject = MakeShareable(new FJsonObject);
@@ -819,7 +853,14 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 				parameterIDs.Add(ObjectChoice.id);
 			}
 			ParameterObject->SetObjectField("options", ParameterOptionsObject);
-			CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameterIDs));
+			if (CC_AddParameterOption != nullptr)
+			{
+				CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameterIDs));
+			}
+			else
+			{
+				UE_LOG(LogCrowdControl, Error, TEXT("CC_AddParameterOption function pointer is null!"));
+			}
 		}
 		ParametersObject->SetObjectField(parameter._id, ParameterObject);
 	}
@@ -886,6 +927,12 @@ void UCrowdControlSubsystem::StopEffect(FString id)
 void UCrowdControlSubsystem::Update() {
     std::lock_guard<std::mutex> lock(QueueMutex);
 	
+	if (CC_CommandFunction == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_CommandFunction function pointer is null!"));
+		return;
+	}
+	
 	int32 CurrentResult = CC_CommandFunction();
 	if(CurrentResult != CommandID)
 	{
@@ -896,8 +943,14 @@ void UCrowdControlSubsystem::Update() {
 	}
 
 	// Check Queued events
+	if (CC_EngineEffect == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_EngineEffect function pointer is null!"));
+		return;
+	}
+	
 	char * effectManifest = CC_EngineEffect();
-	if (effectManifest[0] != '\0')
+	if (effectManifest != nullptr && effectManifest[0] != '\0')
 	{
 		UE_LOG(LogCrowdControl, Verbose, TEXT("%s"), *FString(effectManifest));
 		FString JsonString = FString(effectManifest);
@@ -965,26 +1018,31 @@ void UCrowdControlSubsystem::Update() {
 		}
 	}
 
-	char* chrStr = CC_StringTest();
+	if (CC_StringTest == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CC_StringTest function pointer is null!"));
+		return;
+	}
+	
+	char * chrStr = CC_StringTest();
 	
 	// Check for null pointer
-	if (chrStr == nullptr) {
+	if (chrStr == nullptr)
+	{
 		return;
 	}
 	
 	// Check if string is empty
-	if (chrStr[0] == '\0') {
-		// Memory was allocated, but we should still free it
-		// Note: The DLL allocates this, but we don't have a way to free it safely
-		// This is a known limitation matching the pattern used by other functions
+	if (chrStr[0] == '\0')
+	{
 		return;
 	}
 	
 	int firstCharAsInt = static_cast<unsigned char>(chrStr[0]);
 	const char* messageStr = chrStr + 1;
 	
-	// Verify the message string is valid before using it
-	if (messageStr != nullptr && messageStr[0] != '\0') {
+	if (messageStr != nullptr && messageStr[0] != '\0')
+	{
 		FString MessageString = FString(UTF8_TO_TCHAR(messageStr));
 		
 		if (firstCharAsInt == 65) {
@@ -997,9 +1055,6 @@ void UCrowdControlSubsystem::Update() {
 			UE_LOG(LogCrowdControl, Log, TEXT("%s"), *MessageString);
 		}
 	}
-	
-	// Note: Memory allocated by DLL cannot be safely freed from Unreal
-	// This matches the pattern used by other functions like GetOriginID
 }
 
 void UCrowdControlSubsystem::Tick(float DeltaTime) {
@@ -1011,6 +1066,8 @@ UCrowdControlSubsystem::~UCrowdControlSubsystem()
 	MenuJson = "";
     Disconnect();
 }
+
+
 
 
 

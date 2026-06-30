@@ -155,9 +155,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
 	void ClearCustomEffects();
 
-	// Delete specific custom effects by their IDs, or delete all if EffectIDsJson is empty
-	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Delete custom effects by IDs (JSON array). Leave empty to delete all custom effects."))
-	void DeleteCustomEffects(const FString& EffectIDsJson = FString());
+	// Delete all custom effects
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Delete all custom effects."))
+	void DeleteCustomEffects();
+
+	// Delete specific custom effects by their IDs (JSON array string)
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Delete custom effects by IDs (JSON array)."))
+	void DeleteCustomEffectsByJson(const FString& EffectIDsJson);
 
 	// Delete custom effects by providing an array of effect ID strings
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Delete custom effects by providing an array of effect IDs. Leave empty to delete all."))
@@ -181,10 +185,10 @@ public:
 	SetEngineType CC_SetEngine;
 
 	typedef int (*FP_Command)();
-	FP_Command CC_CommandFunction;
+	static FP_Command CC_CommandFunction;
 	
 	typedef void (*ResetCommandType)();
-	ResetCommandType CC_ResetCommand;
+	static ResetCommandType CC_ResetCommand;
 	
 	typedef void (*LoginTwitchType)();
 	static LoginTwitchType CC_LoginTwitchFunction;
@@ -258,3 +262,5 @@ protected:
 	void Tick(float DeltaTime);
 	int32 CommandID; 
 };
+
+

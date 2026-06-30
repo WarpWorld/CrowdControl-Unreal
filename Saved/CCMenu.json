@@ -1,0 +1,98 @@
+{
+	"effects":
+	{
+		"game":
+		{
+			"jump":
+			{
+				"name": "Jump",
+				"description": "Force player to jump",
+				"price": 1,
+				"category": [
+					"Player",
+					"Physics"
+				]
+			},
+			"invert_controls":
+			{
+				"name": "Invert Controls",
+				"description": "Inverts player controls!",
+				"price": 3,
+				"category": [
+					"Player",
+					"Physics"
+				],
+				"duration":
+				{
+					"value": 20
+				}
+			},
+			"give_coins":
+			{
+				"name": "Give Coins",
+				"description": "Give coins to the player",
+				"price": 10,
+				"category": [
+					"Coins"
+				],
+				"quantity":
+				{
+					"min": 1,
+					"max": 100
+				},
+				"parameters":
+				{
+				}
+			},
+			"change_color":
+			{
+				"name": "Change Color",
+				"description": "Give the player a fresh coat of paint!",
+				"price": 5,
+				"category": [
+					"Player"
+				],
+				"parameters":
+				{
+					"changecolor_options":
+					{
+						"name": "Change Color Options",
+						"type": "options",
+						"options":
+						{
+							"changecolor_red":
+							{
+								"name": "Red"
+							},
+							"changecolor_green":
+							{
+								"name": "Green"
+							},
+							"changecolor_blue":
+							{
+								"name": "Blue"
+							}
+						}
+					}
+				}
+			},
+			"take_coins":
+			{
+				"name": "Take Coins",
+				"description": "Take Coins from the player",
+				"price": 10,
+				"category": [
+					"Coins"
+				],
+				"quantity":
+				{
+					"min": 1,
+					"max": 100
+				},
+				"parameters":
+				{
+				}
+			}
+		}
+	}
+}

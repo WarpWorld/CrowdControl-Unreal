@@ -11,5 +11,7 @@ public class CrowdControlEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
 		ExtraModuleNames.Add("CrowdControl");
+		bOverrideBuildEnvironment = true;
+		GlobalDefinitions.Add("__has_feature(x)=0");
 	}
 }
