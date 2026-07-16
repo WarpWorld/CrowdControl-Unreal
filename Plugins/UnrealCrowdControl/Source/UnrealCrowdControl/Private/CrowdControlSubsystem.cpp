@@ -10,6 +10,63 @@
 #include "Logging/LogMacros.h"
 #include "JsonUtilities.h"
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+
+class __declspec(dllimport) CCEffectBase
+{
+public:
+	void ToggleSellable(bool sellable);
+	void ToggleVisible(bool visible);
+};
+
+class __declspec(dllimport) CrowdControlRunner
+{
+public:
+	static std::unordered_map<std::string, std::shared_ptr<CCEffectBase>> effects;
+};
+
+namespace
+{
+	template <typename ToggleFunction>
+	void ToggleEffectsByIDs(const TArray<FString>& EffectIDs, ToggleFunction&& Toggle, const TCHAR* ActionName)
+	{
+		auto ToggleEffect = [&Toggle, ActionName](const FString& EffectID)
+		{
+			auto EffectIt = CrowdControlRunner::effects.find(TCHAR_TO_UTF8(*EffectID));
+			if (EffectIt == CrowdControlRunner::effects.end() || !EffectIt->second)
+			{
+				UE_LOG(LogCrowdControl, Warning, TEXT("%s failed. Effect ID '%s' was not found."), ActionName, *EffectID);
+				return;
+			}
+
+			Toggle(*EffectIt->second);
+		};
+
+		if (EffectIDs.Num() == 0)
+		{
+			for (auto& EffectPair : CrowdControlRunner::effects)
+			{
+				if (EffectPair.second)
+				{
+					Toggle(*EffectPair.second);
+				}
+			}
+
+			UE_LOG(LogCrowdControl, Log, TEXT("%s applied to all registered effects."), ActionName);
+			return;
+		}
+
+		for (const FString& EffectID : EffectIDs)
+		{
+			ToggleEffect(EffectID);
+		}
+
+		UE_LOG(LogCrowdControl, Log, TEXT("%s applied to %d requested effects."), ActionName, EffectIDs.Num());
+	}
+}
+
 
 UCrowdControlSubsystem::CrowdControlConnectFunctionType UCrowdControlSubsystem::CC_ConnectFunction;
 UCrowdControlSubsystem::CrowdControlDisconnectFunctionType UCrowdControlSubsystem::CC_DisconnectFunction;
@@ -164,6 +221,38 @@ FString UCrowdControlSubsystem::GetStreamerName()
 bool UCrowdControlSubsystem::GetIsJWTTokenValid()
 {
 	return CC_IsJWTTokenValid();
+}
+
+void UCrowdControlSubsystem::ShowEffectsByIDs(const TArray<FString>& EffectIDs)
+{
+	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
+	{
+		Effect.ToggleVisible(true);
+	}, TEXT("ShowEffectsByIDs"));
+}
+
+void UCrowdControlSubsystem::HideEffectsByIDs(const TArray<FString>& EffectIDs)
+{
+	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
+	{
+		Effect.ToggleVisible(false);
+	}, TEXT("HideEffectsByIDs"));
+}
+
+void UCrowdControlSubsystem::EnableEffectsByIDs(const TArray<FString>& EffectIDs)
+{
+	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
+	{
+		Effect.ToggleSellable(true);
+	}, TEXT("EnableEffectsByIDs"));
+}
+
+void UCrowdControlSubsystem::DisableEffectsByIDs(const TArray<FString>& EffectIDs)
+{
+	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
+	{
+		Effect.ToggleSellable(false);
+	}, TEXT("DisableEffectsByIDs"));
 }
 
 // Helper function to convert FCrowdControlEffectInfo to JSON
