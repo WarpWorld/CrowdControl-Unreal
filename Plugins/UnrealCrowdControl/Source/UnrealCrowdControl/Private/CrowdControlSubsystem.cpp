@@ -5,6 +5,7 @@
 #include "CrowdControlDeveloperSettings.h"
 #include "Misc/Paths.h"
 #include "CrowdControlRunable.h"
+#include "CrowdControlEffectComponent.h"
 #include "CrowdControlFunctionLibrary.h"
 #include "CrowdControlLogChannels.h"
 #include "Logging/LogMacros.h"
@@ -135,6 +136,12 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UCrowdControlSubsystem::Deinitialize()
 {
+	if (TickerHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+		TickerHandle.Reset();
+	}
+
 	MenuJson = "";
 	GameJsonObject.Reset();
 	if (Runnable) {
@@ -303,8 +310,19 @@ static TSharedPtr<FJsonObject> ParameterEffectInfoToJson(const FCrowdControlPara
 	{
 		TSharedPtr<FJsonObject> ParameterObject = MakeShareable(new FJsonObject);
 		ParameterObject->SetStringField("name", parameter.name);
+
+		if (parameter.type == ECrowdControlParamType::MinMax)
+		{
+			TSharedPtr<FJsonObject> MinMaxObject = MakeShareable(new FJsonObject);
+			MinMaxObject->SetNumberField("min", parameter.min);
+			MinMaxObject->SetNumberField("max", parameter.max);
+			ParameterObject->SetObjectField("quantity", MinMaxObject);
+			ParametersObject->SetObjectField(parameter._id, ParameterObject);
+			continue;
+		}
+
 		ParameterObject->SetStringField("type", parameter.type == ECrowdControlParamType::OPTIONS ? "options" : "hex-color");
-		
+
 		if (parameter.type == ECrowdControlParamType::OPTIONS)
 		{
 			TSharedPtr<FJsonObject> ParameterOptionsObject = MakeShareable(new FJsonObject);
@@ -640,6 +658,30 @@ FString UCrowdControlSubsystem::GetCustomEffects()
 	}
 }
 
+void UCrowdControlSubsystem::RegisterEffectComponent(UCrowdControlEffectComponent* Component)
+{
+	if (Component == nullptr || Component->EffectID.IsEmpty())
+	{
+		return;
+	}
+
+	EffectComponents.Add(Component->EffectID, Component);
+}
+
+void UCrowdControlSubsystem::UnregisterEffectComponent(UCrowdControlEffectComponent* Component)
+{
+	if (Component == nullptr)
+	{
+		return;
+	}
+
+	const TWeakObjectPtr<UCrowdControlEffectComponent>* Found = EffectComponents.Find(Component->EffectID);
+	if (Found != nullptr && Found->Get() == Component)
+	{
+		EffectComponents.Remove(Component->EffectID);
+	}
+}
+
 void UCrowdControlSubsystem::StartThread() {
 	if (CC_CrowdControlFunction != nullptr) {
         UE_LOG(LogTemp, Warning, TEXT("Run function loaded successfully"));
@@ -707,11 +749,44 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetEngineEffect"));
 		CC_SetEngine();
 
+		// appID auth-code flow, session control, effect reports & metadata.
+		// These may be null when running against an older CrowdControl.dll.
+		CC_SetAppID = (SetAppIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAppID"));
+		CC_SetPublicClientKey = (SetPublicClientKeyType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetPublicClientKey"));
+		CC_RequestAuthCode = (RequestAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("RequestAuthCode"));
+		CC_GetAuthCode = (GetAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetAuthCode"));
+		CC_SetAutoStartSession = (SetAutoStartSessionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAutoStartSession"));
+		CC_StartSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StartSession"));
+		CC_StopSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StopSession"));
+		CC_EffectFailTemporary = (EffectFailMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailTemporary"));
+		CC_EffectFailPermanent = (EffectFailMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailPermanent"));
+		CC_ReportEffectStatus = (ReportEffectStatusType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ReportEffectStatus"));
+		CC_SendPackMetadata = (SendPackMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SendPackMetadata"));
+
     	// Set GamePackID and GameName from developer settings
     	const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
     	if(Settings)
     	{
     		CC_SetGameNameAndPackID(TCHAR_TO_UTF8(*Settings->GameName), TCHAR_TO_UTF8(*Settings->GamePackID));
+
+    		if (CC_SetAppID != nullptr && !Settings->ApplicationID.IsEmpty())
+    		{
+    			CC_SetAppID(TCHAR_TO_UTF8(*Settings->ApplicationID));
+    		}
+
+    		if (CC_SetPublicClientKey != nullptr && !Settings->PublicClientKey.IsEmpty())
+    		{
+    			CC_SetPublicClientKey(TCHAR_TO_UTF8(*Settings->PublicClientKey));
+    		}
+    		else if (!Settings->ApplicationID.IsEmpty() && Settings->PublicClientKey.IsEmpty())
+    		{
+    			UE_LOG(LogCrowdControl, Warning, TEXT("ApplicationID is set but PublicClientKey is empty - the auth code exchange may be rejected. Set your Public Client Key in Project Settings -> CrowdControlSettings."));
+    		}
+
+    		if (CC_SetAutoStartSession != nullptr)
+    		{
+    			CC_SetAutoStartSession(Settings->bStartSessionAutomatically);
+    		}
     	}
     }
     else
@@ -756,6 +831,137 @@ void UCrowdControlSubsystem::LoginDiscord()
 	CC_LoginDiscordFunction();
 }
 
+void UCrowdControlSubsystem::RequestAuthCode()
+{
+	if (CC_RequestAuthCode != nullptr)
+	{
+		CC_RequestAuthCode();
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("RequestAuthCode is not supported by the loaded CrowdControl.dll. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+	}
+}
+
+void UCrowdControlSubsystem::StartGameSession()
+{
+	if (CC_StartSession != nullptr)
+	{
+		CC_StartSession();
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("StartGameSession is not supported by the loaded CrowdControl.dll. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+	}
+}
+
+void UCrowdControlSubsystem::StopGameSession()
+{
+	if (CC_StopSession != nullptr)
+	{
+		CC_StopSession();
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("StopGameSession is not supported by the loaded CrowdControl.dll. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+	}
+}
+
+void UCrowdControlSubsystem::EffectFailureTemporary(FString id, FString Message)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl EffectFailureTemporary call failed! Currently not initialized!"))
+		return;
+	}
+
+	if (CC_EffectFailTemporary != nullptr)
+	{
+		CC_EffectFailTemporary(TCHAR_TO_UTF8(*id), TCHAR_TO_UTF8(*Message));
+	}
+	else
+	{
+		EffectFailure(id);
+	}
+}
+
+void UCrowdControlSubsystem::EffectFailurePermanent(FString id, FString Message)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl EffectFailurePermanent call failed! Currently not initialized!"))
+		return;
+	}
+
+	if (CC_EffectFailPermanent != nullptr)
+	{
+		CC_EffectFailPermanent(TCHAR_TO_UTF8(*id), TCHAR_TO_UTF8(*Message));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("EffectFailurePermanent is not supported by the loaded CrowdControl.dll - sending temporary failure instead. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+		EffectFailure(id);
+	}
+}
+
+bool UCrowdControlSubsystem::ReportEffectStatus(FString EffectID, ECrowdControlEffectReport Status)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl ReportEffectStatus call failed! Currently not initialized!"))
+		return false;
+	}
+
+	if (CC_ReportEffectStatus == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("ReportEffectStatus is not supported by the loaded CrowdControl.dll. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+		return false;
+	}
+
+	return CC_ReportEffectStatus(TCHAR_TO_UTF8(*EffectID), static_cast<int>(Status));
+}
+
+bool UCrowdControlSubsystem::SetEffectVisibility(FString EffectID, bool bVisible)
+{
+	return ReportEffectStatus(EffectID, bVisible ? ECrowdControlEffectReport::MenuVisible : ECrowdControlEffectReport::MenuHidden);
+}
+
+bool UCrowdControlSubsystem::SetEffectAvailability(FString EffectID, bool bAvailable)
+{
+	return ReportEffectStatus(EffectID, bAvailable ? ECrowdControlEffectReport::MenuAvailable : ECrowdControlEffectReport::MenuUnavailable);
+}
+
+void UCrowdControlSubsystem::SendPackMetadataJson(const FString& MetadataJson)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl SendPackMetadataJson call failed! Currently not initialized!"))
+		return;
+	}
+
+	if (CC_SendPackMetadata != nullptr)
+	{
+		CC_SendPackMetadata(TCHAR_TO_UTF8(*MetadataJson));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("SendPackMetadata is not supported by the loaded CrowdControl.dll. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+	}
+}
+
+void UCrowdControlSubsystem::SendPackMetadata(const FString& Key, const FString& Value)
+{
+	TSharedPtr<FJsonObject> MetadataObject = MakeShareable(new FJsonObject);
+	MetadataObject->SetStringField(Key, Value);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (FJsonSerializer::Serialize(MetadataObject.ToSharedRef(), Writer))
+	{
+		SendPackMetadataJson(JsonString);
+	}
+}
+
 char** UCrowdControlSubsystem::SplitCategories(TArray<FString> categories) {
 	char** categoriesArray = new char*[categories.Num() + 1];
 
@@ -765,31 +971,41 @@ char** UCrowdControlSubsystem::SplitCategories(TArray<FString> categories) {
 		strcpy_s(categoriesArray[i], tempString.length() + 1, tempString.c_str());
 	}
 
-	categoriesArray[categories.Num()] = nullptr;  
+	categoriesArray[categories.Num()] = nullptr;
 
-	return categoriesArray; 
+	return categoriesArray;
+}
+
+void UCrowdControlSubsystem::FreeCategories(char** categoriesArray)
+{
+	if (categoriesArray == nullptr)
+	{
+		return;
+	}
+
+	for (int32 i = 0; categoriesArray[i] != nullptr; ++i)
+	{
+		delete[] categoriesArray[i];
+	}
+
+	delete[] categoriesArray;
 }
 
 void UCrowdControlSubsystem::SetupWorldTimer(UWorld* World, const FWorldInitializationValues IVS)
 {
-	TickTimerHandle.Invalidate();
-
-	if(!World)
+	// Use the core ticker rather than a world timer: it runs on the game thread but
+	// keeps firing while the world is paused, so the DLL's message queue, auth-code
+	// polling and effect dispatch never stall in pause menus.
+	if (TickerHandle.IsValid())
 		return;
-	
-	World->GetTimerManager().SetTimer(TickTimerHandle, this, &ThisClass::OnTimerManagerTick, 0.1f, true);
+
+	TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &ThisClass::OnCoreTick), 0.1f);
 }
 
-void UCrowdControlSubsystem::OnTimerManagerTick()
+bool UCrowdControlSubsystem::OnCoreTick(float DeltaTime)
 {
-	if(GetWorld()->IsPaused())
-		return;  // do nothing on pause
-
-	const float Delta = GetWorld()->GetDeltaSeconds();
-	if(Delta > UE_KINDA_SMALL_NUMBER)
-	{
-		Tick(Delta);
-	}	
+	Tick(DeltaTime);
+	return true;
 }
 
 void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
@@ -826,7 +1042,9 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 	
 	if (CC_AddBasicEffect != nullptr)
 	{
-		CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+		char** Categories = SplitCategories(Info.category);
+		CC_AddBasicEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, Categories);
+		FreeCategories(Categories);
 	}
 	else
 	{
@@ -869,7 +1087,9 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 	}
 	if (CC_AddTimedEffect != nullptr)
 	{
-		CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category), Info.duration);
+		char** Categories = SplitCategories(Info.category);
+		CC_AddTimedEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, Categories, Info.duration);
+		FreeCategories(Categories);
 	}
 	else
 	{
@@ -901,7 +1121,9 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 	
 	if (CC_AddParameterEffect != nullptr)
 	{
-		CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, SplitCategories(Info.category));
+		char** Categories = SplitCategories(Info.category);
+		CC_AddParameterEffect(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*Info.displayName), TCHAR_TO_UTF8(*Info.description), Info.price, 0, 0, 0, 0, 1, 0, 0, 0, Categories);
+		FreeCategories(Categories);
 	}
 	else
 	{
@@ -929,6 +1151,23 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 	{
 		TSharedPtr<FJsonObject> ParameterObject = MakeShareable(new FJsonObject);
 		ParameterObject->SetStringField("name", parameter.name);
+
+		if (parameter.type == ECrowdControlParamType::MinMax)
+		{
+			TSharedPtr<FJsonObject> MinMaxObject = MakeShareable(new FJsonObject);
+			MinMaxObject->SetNumberField("min", parameter.min);
+			MinMaxObject->SetNumberField("max", parameter.max);
+			ParameterObject->SetObjectField("quantity", MinMaxObject);
+
+			if (CC_AddParameterMinMax != nullptr)
+			{
+				CC_AddParameterMinMax(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), parameter.min, parameter.max);
+			}
+
+			ParametersObject->SetObjectField(parameter._id, ParameterObject);
+			continue;
+		}
+
 		ParameterObject->SetStringField("type", parameter.type == ECrowdControlParamType::OPTIONS?"options":"hex-color");
 		if (parameter.type == ECrowdControlParamType::OPTIONS)
 		{
@@ -944,7 +1183,9 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 			ParameterObject->SetObjectField("options", ParameterOptionsObject);
 			if (CC_AddParameterOption != nullptr)
 			{
-				CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), SplitCategories(parameterIDs));
+				char** OptionIDs = SplitCategories(parameterIDs);
+				CC_AddParameterOption(TCHAR_TO_UTF8(*Info.id), TCHAR_TO_UTF8(*parameter._id), OptionIDs);
+				FreeCategories(OptionIDs);
 			}
 			else
 			{
@@ -974,7 +1215,6 @@ void UCrowdControlSubsystem::EffectSuccess(FString id)
 	}
 	
 	CC_EffectSuccess(TCHAR_TO_UTF8(*id));
-	LastSuccessfulEffectID = id;
 }
 
 void UCrowdControlSubsystem::EffectFailure(FString id)
@@ -1025,10 +1265,47 @@ void UCrowdControlSubsystem::Update() {
 	int32 CurrentResult = CC_CommandFunction();
 	if(CurrentResult != CommandID)
 	{
+		const bool bWasInitialized = bIsInitialized;
+
 		CommandID = CurrentResult;
 		bIsConnected = CommandID >= 2;
 		bIsInitialized = CommandID > 2;
 		OnCommandIDChanged.Broadcast(CommandID);
+
+		if (CommandID >= 0 && CommandID <= 3)
+		{
+			OnConnectionStateChanged.Broadcast(static_cast<ECrowdControlConnectionState>(CommandID));
+		}
+
+		if (bIsInitialized && !bWasInitialized)
+		{
+			OnSessionReady.Broadcast();
+		}
+	}
+
+	// Check for a freshly generated application auth code (one-shot from the DLL)
+	if (CC_GetAuthCode != nullptr)
+	{
+		char* authCodeStr = CC_GetAuthCode();
+		if (authCodeStr != nullptr && authCodeStr[0] != '\0')
+		{
+			FString AuthCodeJson = FString(UTF8_TO_TCHAR(authCodeStr));
+			TSharedPtr<FJsonObject> AuthCodeObject;
+			TSharedRef<TJsonReader<>> AuthCodeReader = TJsonReaderFactory<>::Create(AuthCodeJson);
+
+			FString Code, URL;
+			if (FJsonSerializer::Deserialize(AuthCodeReader, AuthCodeObject) && AuthCodeObject.IsValid()
+				&& AuthCodeObject->TryGetStringField(TEXT("code"), Code)
+				&& AuthCodeObject->TryGetStringField(TEXT("url"), URL))
+			{
+				UE_LOG(LogCrowdControl, Log, TEXT("Auth code received: %s (%s)"), *Code, *URL);
+				OnAuthCodeReceived.Broadcast(Code, URL);
+			}
+			else
+			{
+				UE_LOG(LogCrowdControl, Error, TEXT("Failed to parse auth code JSON: %s"), *AuthCodeJson);
+			}
+		}
 	}
 
 	// Check Queued events
@@ -1066,36 +1343,73 @@ void UCrowdControlSubsystem::Update() {
 				
 				UE_LOG(LogCrowdControl, Log, TEXT("Effect Name: %s   Request ID: %s   Effect ID: %s"), *Name, *Id, *EffectID);
 
+				// Effects with a registered component are dispatched to it directly
+				// (the component sends its own response); everything else goes to
+				// the global delegates.
+				UCrowdControlEffectComponent* TargetComponent = nullptr;
+				if (!EffectID.IsEmpty())
+				{
+					if (const TWeakObjectPtr<UCrowdControlEffectComponent>* Found = EffectComponents.Find(EffectID))
+					{
+						TargetComponent = Found->Get();
+					}
+				}
+
+				FString ViewerName;
+				JsonObject->TryGetStringField(TEXT("viewer"), ViewerName);
+
 				FString Duration, ParameterValue;
 				const TSharedPtr<FJsonObject>* ParamsObject;
 				int32 Quantity = 1;
-				if (JsonObject->TryGetStringField(TEXT("duration"), Duration) && Duration.IsNumeric())
+				const bool bIsTimed = JsonObject->TryGetStringField(TEXT("duration"), Duration) && Duration.IsNumeric();
+				const float DurationValue = bIsTimed ? FCString::Atof(*Duration) : 0.f;
+				const bool bHasParams = JsonObject->TryGetObjectField(TEXT("params"), ParamsObject);
+				const bool bHasQuantity = JsonObject->TryGetNumberField(TEXT("quantity"), Quantity);
+
+				// Notification hook: always fires, regardless of how the effect is handled.
+				OnEffectRequestReceived.Broadcast(Id, EffectID, Name, ViewerName, DurationValue, bHasQuantity ? Quantity : 1);
+
+				if (bIsTimed)
 				{
-					OnTimedEffectTrigger.Broadcast(Id, Name, FCString::Atof(*Duration), EffectID);
+					if (TargetComponent != nullptr)
+					{
+						TargetComponent->HandleTrigger(Id, DurationValue, 1, FJsonObjectWrapper(), ViewerName);
+					}
+					else
+					{
+						OnTimedEffectTrigger.Broadcast(Id, Name, DurationValue, EffectID, ViewerName);
+					}
 				}
-				else if (JsonObject->TryGetObjectField(TEXT("params"), ParamsObject))
+				else if (bHasParams || bHasQuantity)
 				{
-					JsonObject->TryGetNumberField(TEXT("quantity"), Quantity);
 					FJsonObjectWrapper ParamsWrapped;
-					ParamsWrapped.JsonObject = *ParamsObject;
-					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped, EffectID);
+					if (bHasParams)
+					{
+						ParamsWrapped.JsonObject = *ParamsObject;
+					}
+
+					if (TargetComponent != nullptr)
+					{
+						TargetComponent->HandleTrigger(Id, 0.f, Quantity, ParamsWrapped, ViewerName);
+					}
+					else
+					{
+						OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped, EffectID, ViewerName);
+					}
 				}
-				else if (JsonObject->TryGetNumberField(TEXT("quantity"), Quantity))
+				else if (TargetComponent != nullptr)
 				{
-					FJsonObjectWrapper ParamsWrapped;
-					OnParameterEffectTrigger.Broadcast(Id, Name, FString::FromInt(Quantity), ParamsWrapped, EffectID);
+					TargetComponent->HandleTrigger(Id, 0.f, 1, FJsonObjectWrapper(), ViewerName);
 				}
 				else
 				{
-					OnEffectTrigger.Broadcast(Id, Name, EffectID);
+					OnEffectTrigger.Broadcast(Id, Name, EffectID, ViewerName);
 				}
-				
-				if(LastSuccessfulEffectID != Id)
-				{
-					// If no calls to EffectSuccess() was made due to OnEffectTrigger broadcast, we need to notify failure.
-					EffectFailure(Id);
-				}
-			} 
+
+				// Note: the game is responsible for responding to every request with
+				// EffectSuccess / EffectFailureTemporary / EffectFailurePermanent — responses
+				// may be sent asynchronously, so no automatic failure is issued here.
+			}
 			else 
 			{
 				UE_LOG(LogCrowdControl, Warning, TEXT("Failed to find 'name' or 'id' in JSON"));

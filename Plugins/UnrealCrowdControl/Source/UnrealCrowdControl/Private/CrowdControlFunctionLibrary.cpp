@@ -9,5 +9,5 @@ FCrowdControlParameter UCrowdControlFunctionLibrary::MakeOptionParameter(FString
 
 FCrowdControlParameter UCrowdControlFunctionLibrary::MakeMinMaxParameter(FString Id, int32 min, int32 max)
 {
-	return FCrowdControlParameter(Id);
+	return FCrowdControlParameter(Id, min, max);
 }
