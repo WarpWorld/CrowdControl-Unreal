@@ -213,6 +213,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Crowd Control")
 	bool GetIsJWTTokenValid();
 
+	// Show effects by providing an array of effect ID strings
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Show effects by providing an array of effect IDs. Leave empty to show all."))
+	void ShowEffectsByIDs(const TArray<FString>& EffectIDs);
+
+	// Hide effects by providing an array of effect ID strings
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Hide effects by providing an array of effect IDs. Leave empty to hide all."))
+	void HideEffectsByIDs(const TArray<FString>& EffectIDs);
+
+	// Enable effects by providing an array of effect ID strings
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Enable effects by providing an array of effect IDs. Leave empty to enable all."))
+	void EnableEffectsByIDs(const TArray<FString>& EffectIDs);
+
+	// Disable effects by providing an array of effect ID strings
+	UFUNCTION(BlueprintCallable, Category = "Crowd Control", meta = (CallInEditor = "true", ToolTip = "Disable effects by providing an array of effect IDs. Leave empty to disable all."))
+	void DisableEffectsByIDs(const TArray<FString>& EffectIDs);
+
 	// JSON string version - C++ only, not exposed to Blueprint (internal use)
 	void UploadCustomEffectsJson(const FString& EffectsJson);
 
