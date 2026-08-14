@@ -367,7 +367,16 @@ public:
 
 	typedef char* (*GetCustomEffectsType)();
 	GetCustomEffectsType CC_GetCustomEffects;
-	
+
+	// CCEffectBase::ToggleVisible / ToggleSellable are C++ member functions rather than part of the C
+	// API, so they are resolved by their decorated names and called with the effect as the this pointer.
+	typedef void (*ToggleEffectFlagType)(void* Effect, bool bValue);
+	ToggleEffectFlagType CC_ToggleVisible = nullptr;
+	ToggleEffectFlagType CC_ToggleSellable = nullptr;
+
+	// Address of CrowdControlRunner::effects inside the DLL. Cast to the effect map type in the .cpp.
+	void* CC_EffectsMap = nullptr;
+
 	TUniquePtr<FCrowdControlRunnable> Runnable = nullptr;
 	
 	static char * StringToSend;  // Declare as a static array with a fixed size

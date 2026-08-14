@@ -15,43 +15,37 @@
 #include <string>
 #include <unordered_map>
 
-class __declspec(dllimport) CCEffectBase
-{
-public:
-	void ToggleSellable(bool sellable);
-	void ToggleVisible(bool visible);
-};
-
-class __declspec(dllimport) CrowdControlRunner
-{
-public:
-	static std::unordered_map<std::string, std::shared_ptr<CCEffectBase>> effects;
-};
+// Owned by CrowdControl.dll. Only ever used through pointers here: the DLL is resolved at runtime in
+// LoadDLL(), so nothing in this module may be statically linked against it.
+class CCEffectBase;
 
 namespace
 {
-	template <typename ToggleFunction>
-	void ToggleEffectsByIDs(const TArray<FString>& EffectIDs, ToggleFunction&& Toggle, const TCHAR* ActionName)
-	{
-		auto ToggleEffect = [&Toggle, ActionName](const FString& EffectID)
-		{
-			auto EffectIt = CrowdControlRunner::effects.find(TCHAR_TO_UTF8(*EffectID));
-			if (EffectIt == CrowdControlRunner::effects.end() || !EffectIt->second)
-			{
-				UE_LOG(LogCrowdControl, Warning, TEXT("%s failed. Effect ID '%s' was not found."), ActionName, *EffectID);
-				return;
-			}
+	using FCCEffectMap = std::unordered_map<std::string, std::shared_ptr<CCEffectBase>>;
 
-			Toggle(*EffectIt->second);
-		};
+	// Decorated names of the CrowdControl.dll exports backing the effect toggles. Unlike the rest of the
+	// API these are C++ members rather than extern "C" wrappers, so they have to be looked up decorated.
+	const TCHAR* const CCEffectsMapExport = TEXT("?effects@CrowdControlRunner@@2V?$unordered_map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$shared_ptr@VCCEffectBase@@@2@U?$hash@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@U?$equal_to@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$shared_ptr@VCCEffectBase@@@2@@std@@@2@@std@@A");
+	const TCHAR* const CCToggleVisibleExport = TEXT("?ToggleVisible@CCEffectBase@@QEAAX_N@Z");
+	const TCHAR* const CCToggleSellableExport = TEXT("?ToggleSellable@CCEffectBase@@QEAAX_N@Z");
+
+	// Toggle is CCEffectBase::ToggleVisible or ::ToggleSellable, called with the effect passed explicitly
+	// as the this pointer. On x64 MSVC member calls use the same convention with this in RCX.
+	void ToggleEffectsByIDs(const TArray<FString>& EffectIDs, FCCEffectMap* Effects, void (*Toggle)(void*, bool), bool bValue, const TCHAR* ActionName)
+	{
+		if (Effects == nullptr || Toggle == nullptr)
+		{
+			UE_LOG(LogCrowdControl, Warning, TEXT("%s failed. The loaded CrowdControl.dll does not export the effect toggles."), ActionName);
+			return;
+		}
 
 		if (EffectIDs.Num() == 0)
 		{
-			for (auto& EffectPair : CrowdControlRunner::effects)
+			for (auto& EffectPair : *Effects)
 			{
 				if (EffectPair.second)
 				{
-					Toggle(*EffectPair.second);
+					Toggle(EffectPair.second.get(), bValue);
 				}
 			}
 
@@ -61,7 +55,14 @@ namespace
 
 		for (const FString& EffectID : EffectIDs)
 		{
-			ToggleEffect(EffectID);
+			auto EffectIt = Effects->find(TCHAR_TO_UTF8(*EffectID));
+			if (EffectIt == Effects->end() || !EffectIt->second)
+			{
+				UE_LOG(LogCrowdControl, Warning, TEXT("%s failed. Effect ID '%s' was not found."), ActionName, *EffectID);
+				continue;
+			}
+
+			Toggle(EffectIt->second.get(), bValue);
 		}
 
 		UE_LOG(LogCrowdControl, Log, TEXT("%s applied to %d requested effects."), ActionName, EffectIDs.Num());
@@ -232,34 +233,22 @@ bool UCrowdControlSubsystem::GetIsJWTTokenValid()
 
 void UCrowdControlSubsystem::ShowEffectsByIDs(const TArray<FString>& EffectIDs)
 {
-	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
-	{
-		Effect.ToggleVisible(true);
-	}, TEXT("ShowEffectsByIDs"));
+	ToggleEffectsByIDs(EffectIDs, static_cast<FCCEffectMap*>(CC_EffectsMap), CC_ToggleVisible, true, TEXT("ShowEffectsByIDs"));
 }
 
 void UCrowdControlSubsystem::HideEffectsByIDs(const TArray<FString>& EffectIDs)
 {
-	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
-	{
-		Effect.ToggleVisible(false);
-	}, TEXT("HideEffectsByIDs"));
+	ToggleEffectsByIDs(EffectIDs, static_cast<FCCEffectMap*>(CC_EffectsMap), CC_ToggleVisible, false, TEXT("HideEffectsByIDs"));
 }
 
 void UCrowdControlSubsystem::EnableEffectsByIDs(const TArray<FString>& EffectIDs)
 {
-	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
-	{
-		Effect.ToggleSellable(true);
-	}, TEXT("EnableEffectsByIDs"));
+	ToggleEffectsByIDs(EffectIDs, static_cast<FCCEffectMap*>(CC_EffectsMap), CC_ToggleSellable, true, TEXT("EnableEffectsByIDs"));
 }
 
 void UCrowdControlSubsystem::DisableEffectsByIDs(const TArray<FString>& EffectIDs)
 {
-	ToggleEffectsByIDs(EffectIDs, [](CCEffectBase& Effect)
-	{
-		Effect.ToggleSellable(false);
-	}, TEXT("DisableEffectsByIDs"));
+	ToggleEffectsByIDs(EffectIDs, static_cast<FCCEffectMap*>(CC_EffectsMap), CC_ToggleSellable, false, TEXT("DisableEffectsByIDs"));
 }
 
 // Helper function to convert FCrowdControlEffectInfo to JSON
@@ -744,6 +733,16 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_DeleteCustomEffects = (DeleteCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("DeleteCustomEffects"));
 		CC_GetCustomEffects = (GetCustomEffectsType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetCustomEffects"));
 		ensure(CC_UploadCustomEffects && CC_ClearCustomEffects && CC_DeleteCustomEffects && CC_GetCustomEffects);
+
+		// Show/Hide/Enable/Disable effect toggles. These may be null when running against an older
+		// CrowdControl.dll, or one built with a different toolchain, in which case the toggles no-op.
+		CC_EffectsMap = FPlatformProcess::GetDllExport(DLLHandle, CCEffectsMapExport);
+		CC_ToggleVisible = (ToggleEffectFlagType)FPlatformProcess::GetDllExport(DLLHandle, CCToggleVisibleExport);
+		CC_ToggleSellable = (ToggleEffectFlagType)FPlatformProcess::GetDllExport(DLLHandle, CCToggleSellableExport);
+		if (CC_EffectsMap == nullptr || CC_ToggleVisible == nullptr || CC_ToggleSellable == nullptr)
+		{
+			UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl.dll does not export the effect toggle symbols. Show/Hide/Enable/DisableEffectsByIDs will do nothing."));
+		}
     	
 		CC_SetEngine = (SetEngineType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetEngine"));
 		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetEngineEffect"));

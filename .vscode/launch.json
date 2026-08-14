@@ -1,0 +1,65 @@
+{
+	// Portable launch configs — no absolute paths, safe to commit.
+	//
+	// Requires the UE_ROOT environment variable pointing at your engine install, e.g.
+	//   setx UE_ROOT "C:\Program Files\Epic Games\UE_5.5"
+	// Restart VS Code after setting it. Everything else resolves from ${workspaceFolder}.
+	//
+	// These are hand-maintained. The generated CrowdControl.code-workspace / .sln that
+	// "Generate Project Files" produces contain machine-specific paths and are gitignored.
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "EDITOR - Open CrowdControl in Unreal Editor (Development)",
+			"request": "launch",
+			"program": "${env:UE_ROOT}/Engine/Binaries/Win64/UnrealEditor.exe",
+			"preLaunchTask": "Build CrowdControlEditor (Development)",
+			"args": [
+				"${workspaceFolder}/CrowdControl.uproject"
+			],
+			"cwd": "${env:UE_ROOT}",
+			"stopAtEntry": false,
+			"console": "integratedTerminal",
+			"type": "cppvsdbg",
+			"visualizerFile": "${env:UE_ROOT}/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"sourceFileMap": {
+				"D:\\build\\++UE5\\Sync": "${env:UE_ROOT}"
+			}
+		},
+		{
+			"name": "GAME - Standalone game, uncooked (no cook needed)",
+			"request": "launch",
+			"program": "${env:UE_ROOT}/Engine/Binaries/Win64/UnrealEditor.exe",
+			"preLaunchTask": "Build CrowdControlEditor (Development)",
+			"args": [
+				"${workspaceFolder}/CrowdControl.uproject",
+				"-game"
+			],
+			"cwd": "${env:UE_ROOT}",
+			"stopAtEntry": false,
+			"console": "integratedTerminal",
+			"type": "cppvsdbg",
+			"visualizerFile": "${env:UE_ROOT}/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"sourceFileMap": {
+				"D:\\build\\++UE5\\Sync": "${env:UE_ROOT}"
+			}
+		},
+		{
+			// Requires cooked content — package the project first, or this fails with
+			// "Game files required to initialize the global shader library are missing".
+			"name": "PACKAGED GAME - CrowdControl (Development) [requires cooked content]",
+			"request": "launch",
+			"program": "${workspaceFolder}/Binaries/Win64/CrowdControl.exe",
+			"preLaunchTask": "Build CrowdControl (Development)",
+			"args": [],
+			"cwd": "${env:UE_ROOT}",
+			"stopAtEntry": false,
+			"console": "integratedTerminal",
+			"type": "cppvsdbg",
+			"visualizerFile": "${env:UE_ROOT}/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"sourceFileMap": {
+				"D:\\build\\++UE5\\Sync": "${env:UE_ROOT}"
+			}
+		}
+	]
+}

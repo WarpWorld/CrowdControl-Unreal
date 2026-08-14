@@ -1,0 +1,52 @@
+{
+	// Portable build tasks — no absolute paths, safe to commit.
+	// Requires the UE_ROOT environment variable (see launch.json).
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build CrowdControlEditor (Development)",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"type": "process",
+			"command": "${env:UE_ROOT}/Engine/Build/BatchFiles/Build.bat",
+			"args": [
+				"CrowdControlEditor",
+				"Win64",
+				"Development",
+				"${workspaceFolder}/CrowdControl.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "Build CrowdControl (Development)",
+			"group": "build",
+			"type": "process",
+			"command": "${env:UE_ROOT}/Engine/Build/BatchFiles/Build.bat",
+			"args": [
+				"CrowdControl",
+				"Win64",
+				"Development",
+				"${workspaceFolder}/CrowdControl.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "Generate Project Files",
+			"type": "process",
+			"command": "${env:UE_ROOT}/Engine/Build/BatchFiles/RunUBT.bat",
+			"args": [
+				"-projectfiles",
+				"-vscode",
+				"-project=${workspaceFolder}/CrowdControl.uproject",
+				"-game",
+				"-engine",
+				"-dotnet"
+			],
+			"problemMatcher": []
+		}
+	]
+}
