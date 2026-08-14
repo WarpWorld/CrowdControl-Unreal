@@ -5,11 +5,15 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
 #include "InputActionValue.h"
+#include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -20,6 +24,31 @@ ACrowdControlCharacter::ACrowdControlCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	AutoPossessPlayer = EAutoReceiveInput::Player0;
+
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultMappingContextFinder(TEXT("/Game/ThirdPerson/Input/IMC_Default.IMC_Default"));
+	if (DefaultMappingContextFinder.Succeeded())
+	{
+		DefaultMappingContext = DefaultMappingContextFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> JumpActionFinder(TEXT("/Game/ThirdPerson/Input/Actions/IA_Jump.IA_Jump"));
+	if (JumpActionFinder.Succeeded())
+	{
+		JumpAction = JumpActionFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> MoveActionFinder(TEXT("/Game/ThirdPerson/Input/Actions/IA_Move.IA_Move"));
+	if (MoveActionFinder.Succeeded())
+	{
+		MoveAction = MoveActionFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> LookActionFinder(TEXT("/Game/ThirdPerson/Input/Actions/IA_Look.IA_Look"));
+	if (LookActionFinder.Succeeded())
+	{
+		LookAction = LookActionFinder.Object;
+	}
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -58,6 +87,28 @@ void ACrowdControlCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+	InitializeDefaultInputMapping();
+}
+
+void ACrowdControlCharacter::InitializeDefaultInputMapping()
+{
+	if (!DefaultMappingContext)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("'%s' has no default input mapping context assigned."), *GetNameSafe(this));
+		return;
+	}
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	{
+		if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer))
+			{
+				Subsystem->RemoveMappingContext(DefaultMappingContext);
+				Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			}
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -65,27 +116,30 @@ void ACrowdControlCharacter::BeginPlay()
 
 void ACrowdControlCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	// Add Input Mapping Context
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	InitializeDefaultInputMapping();
 	
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		if (JumpAction)
+		{
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		}
 
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACrowdControlCharacter::Move);
+		if (MoveAction)
+		{
+			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACrowdControlCharacter::Move);
+		}
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACrowdControlCharacter::Look);
+		if (LookAction)
+		{
+			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACrowdControlCharacter::Look);
+		}
 	}
 	else
 	{
@@ -98,10 +152,10 @@ void ACrowdControlCharacter::Move(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (!MovementVector.IsNearlyZero())
 	{
 		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator Rotation = Controller != nullptr ? Controller->GetControlRotation() : GetActorRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
 		// get forward vector

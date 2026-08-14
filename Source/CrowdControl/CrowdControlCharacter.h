@@ -49,6 +49,7 @@ public:
 	
 
 protected:
+	void InitializeDefaultInputMapping();
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);

@@ -8,6 +8,7 @@ UENUM(BlueprintType)
 enum class ECrowdControlParamType : uint8 {
 	OPTIONS = 0 UMETA(DisplayName = "options"),
 	HexColor = 1  UMETA(DisplayName = "hex-color"),
+	MinMax = 2  UMETA(DisplayName = "min-max"),
 };
 
 USTRUCT(BlueprintType)
@@ -36,7 +37,11 @@ struct FCrowdControlParameter
 	FCrowdControlParameter(FString name)
 		: _id(name)
 	{}
-	
+
+	FCrowdControlParameter(FString inId, int32 inMin, int32 inMax)
+		: _id(inId), name(inId), type(ECrowdControlParamType::MinMax), min(inMin), max(inMax)
+	{}
+
 	bool IsValid() const { return !_id.IsEmpty(); }
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
@@ -50,6 +55,13 @@ struct FCrowdControlParameter
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
 	TArray<FCrowdControlParamOption> _options;
+
+	// Only used when type == MinMax
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
+	int32 min = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Parameter")
+	int32 max = 0;
 };
 
 

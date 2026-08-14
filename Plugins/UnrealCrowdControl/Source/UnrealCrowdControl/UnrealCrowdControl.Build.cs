@@ -19,6 +19,7 @@ public class UnrealCrowdControl : ModuleRules
 			}
 		);
 		
+		
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
 			string BaseDirectory = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../"));
