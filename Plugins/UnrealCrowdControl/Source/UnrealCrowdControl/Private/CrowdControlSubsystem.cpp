@@ -101,7 +101,7 @@ EffectStatusChangeType CC_ResumeEffect;
 typedef bool(*EffectIsRunningType)(const char* name);
 EffectIsRunningType CC_IsRunning;
 
-typedef bool(*SetGameNameAndPackIDType)(char* name, char* packId);
+typedef void(*SetGameNameAndPackIDType)(char* name, char* packId);
 SetGameNameAndPackIDType CC_SetGameNameAndPackID;
 
 UCrowdControlSubsystem& UCrowdControlSubsystem::Get(const UObject* WorldContextObject)
