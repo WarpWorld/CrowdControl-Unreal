@@ -104,7 +104,7 @@ ECrowdControlEffectResult UCrowdControlEffectComponent::OnEffectTriggered_Implem
 	return ECrowdControlEffectResult::Success;
 }
 
-void UCrowdControlEffectComponent::HandleTrigger(const FString& RequestID, float InDuration, int32 Quantity, const FJsonObjectWrapper& Parameters, const FString& ViewerName)
+void UCrowdControlEffectComponent::HandleTrigger(const FString& RequestID, const FString& RoutedEffectID, float InDuration, int32 Quantity, const FJsonObjectWrapper& Parameters, const FString& ViewerName)
 {
 	if (bRunning && Duration > 0.f)
 	{
@@ -114,6 +114,7 @@ void UCrowdControlEffectComponent::HandleTrigger(const FString& RequestID, float
 	}
 
 	CurrentRequestID = RequestID;
+	CurrentEffectID = RoutedEffectID;
 
 	const ECrowdControlEffectResult Result = OnEffectTriggered(RequestID, Quantity, Parameters, ViewerName);
 
@@ -231,7 +232,7 @@ void UCrowdControlEffectComponent::Pause()
 
 	if (UCrowdControlSubsystem* CrowdControl = GetCrowdControl())
 	{
-		CrowdControl->PauseEffect(EffectID);
+		CrowdControl->PauseEffect(CurrentEffectID);
 	}
 
 	OnEffectPaused();
@@ -248,7 +249,7 @@ void UCrowdControlEffectComponent::Resume()
 
 	if (UCrowdControlSubsystem* CrowdControl = GetCrowdControl())
 	{
-		CrowdControl->ResumeEffect(EffectID);
+		CrowdControl->ResumeEffect(CurrentEffectID);
 	}
 
 	OnEffectResumed();
@@ -275,11 +276,12 @@ void UCrowdControlEffectComponent::FinishTimedEffect(bool bNotifyServer)
 	{
 		if (UCrowdControlSubsystem* CrowdControl = GetCrowdControl())
 		{
-			CrowdControl->StopEffect(EffectID);
+			CrowdControl->StopEffect(CurrentEffectID);
 		}
 	}
 
 	CurrentRequestID.Empty();
+	CurrentEffectID.Empty();
 	OnEffectStopped();
 }
 

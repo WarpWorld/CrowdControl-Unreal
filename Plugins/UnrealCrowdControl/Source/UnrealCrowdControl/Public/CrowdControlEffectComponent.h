@@ -133,7 +133,7 @@ public:
 	bool SetAvailability(bool bAvailable);
 
 	// Internal: invoked by the subsystem when a trigger for this EffectID arrives.
-	void HandleTrigger(const FString& RequestID, float InDuration, int32 Quantity, const FJsonObjectWrapper& Parameters, const FString& ViewerName);
+	void HandleTrigger(const FString& RequestID, const FString& RoutedEffectID, float InDuration, int32 Quantity, const FJsonObjectWrapper& Parameters, const FString& ViewerName);
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -145,6 +145,7 @@ protected:
 	void FinishTimedEffect(bool bNotifyServer);
 
 	FString CurrentRequestID;
+	FString CurrentEffectID;
 	float TimeRemaining = 0.f;
 	bool bRunning = false;
 	bool bPaused = false;

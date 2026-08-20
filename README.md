@@ -19,6 +19,7 @@ This branch supports Unreal Engine **5.0–5.5** (Win64). For UE 4.27 support, c
 - **Pack metadata** - report game state to Crowd Control with `SendPackMetadata`.
 - **Session control** - sessions start automatically by default, or drive them manually with `StartGameSession` / `StopGameSession`.
 - **Custom effects** - upload, list, and delete custom effects at runtime.
+- **Effect cloning** - register one implementation under additional effect IDs and route each cloned ID through the same Blueprint component or global delegates.
 
 ## Setup
 
@@ -49,6 +50,19 @@ Both are issued by the Crowd Control team - see [Submitting your Effect Pack](ht
 3. Send over your `CCMenu.json` and project name. You'll receive your **GamePackID**, plus an **ApplicationID** and **PublicClientKey** for the auth-code login flow.
 
 Until then, the shared `UnrealDemo` pack works for testing.
+
+## Cloning Effects in Blueprint
+
+Effect cloning lets multiple effect-pack IDs reuse one implementation. Register the source effect first with `Setup Effect`, `Setup Timed Effect`, `Setup Parameter Effect`, or a `CrowdControlEffectComponent`, then call one of these functions on `CrowdControlSubsystem`:
+
+- **`Clone Effect`** - clones the source to one destination effect ID.
+- **`Clone Effect to IDs`** - clones the source to every ID in an array in one atomic operation.
+
+Call cloning during initialization after the source is registered and before connecting or starting the game session. Destination IDs must be non-empty, unique, and not already registered. If any destination is invalid, the function returns `false` and registers none of the clones.
+
+Incoming requests keep their destination `EffectID`. If the source was registered by a `CrowdControlEffectComponent`, each destination is routed to that same component and timed pause/resume/stop operations target the destination ID that triggered it. If the source uses global delegates, the existing trigger delegate fires normally with the cloned destination ID, allowing Blueprint logic to distinguish aliases when needed.
+
+Cloned menu entries copy the source metadata when `PrintEffectsToJsonFile` generates `Saved/CCMenu.json`. Change destination names, descriptions, or prices in the submitted game pack if aliases need different presentation; cloning is intended to reuse runtime behavior.
 
 ## Building the Example Project from Source
 
@@ -106,4 +120,4 @@ Building from a terminal instead of an IDE:
 
 ## Native DLL
 
-The plugin wraps a native `CrowdControl.dll` (in `Plugins/UnrealCrowdControl/Binaries/Win64/`) that implements the Crowd Control PubSub WebSocket protocol. Its source lives in the `CrowdControlGenericPlugin` repository.
+The plugin wraps a native `CrowdControl.dll` (in `Plugins/UnrealCrowdControl/Binaries/Win64/`) that implements the Crowd Control PubSub WebSocket protocol. Its source lives in the `CrowdControlCPP` repository. Blueprint cloning requires a DLL that exports `CloneEffect`; after rebuilding the native project, copy its Win64 `CrowdControl.dll` over the plugin binary before launching the editor or packaging the game.

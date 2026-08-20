@@ -104,6 +104,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	void SetupParameterEffect(const FCrowdControlParameterEffectInfo& Info);
+
+	UFUNCTION(BlueprintCallable, Category="Crowd Control")
+	bool CloneEffect(const FString& SourceEffectID, const FString& DestinationEffectID);
+
+	UFUNCTION(BlueprintCallable, Category="Crowd Control")
+	bool CloneEffectToIDs(const FString& SourceEffectID, const TArray<FString>& DestinationEffectIDs);
 	
 	UPROPERTY(BlueprintAssignable, Category = "Crowd Control")
     FOnTriggerEffect OnEffectTrigger;
@@ -142,9 +148,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	void EffectSuccess(FString id);
 
+	// Send RPC "Success" with an optional message for the purchasing user
+	UFUNCTION(BlueprintCallable, Category="Crowd Control")
+	void EffectSuccessWithMessage(FString id, FString Message);
+
 	// Send RPC "FailTemporarily" to signal this event failed
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	void EffectFailure(FString id);
+
+	// Send RPC "FailTemporarily" with an optional message for the purchasing user
+	UFUNCTION(BlueprintCallable, Category="Crowd Control")
+	void EffectFailureWithMessage(FString id, FString Message);
 
 	// Send RPC "failTemporary" with an explanation message (effect can be retried/refunded)
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
@@ -325,15 +339,20 @@ public:
 	SessionControlType CC_StartSession = nullptr;
 	SessionControlType CC_StopSession = nullptr;
 
-	typedef void (*EffectFailMessageType)(const char* id, const char* message);
-	EffectFailMessageType CC_EffectFailTemporary = nullptr;
-	EffectFailMessageType CC_EffectFailPermanent = nullptr;
+	typedef void (*EffectResponseMessageType)(const char* id, const char* message);
+	EffectResponseMessageType CC_EffectSuccessWithMessage = nullptr;
+	EffectResponseMessageType CC_EffectFailureWithMessage = nullptr;
+	EffectResponseMessageType CC_EffectFailTemporary = nullptr;
+	EffectResponseMessageType CC_EffectFailPermanent = nullptr;
 
 	typedef bool (*ReportEffectStatusType)(const char* effectID, int status);
 	ReportEffectStatusType CC_ReportEffectStatus = nullptr;
 
 	typedef void (*SendPackMetadataType)(const char* metadataJson);
 	SendPackMetadataType CC_SendPackMetadata = nullptr;
+
+	typedef bool (*CloneEffectType)(const char* sourceEffectID, const char** destEffectIDs);
+	CloneEffectType CC_CloneEffect = nullptr;
 
 	typedef char* (*StringTestType)();
 	StringTestType CC_StringTest;

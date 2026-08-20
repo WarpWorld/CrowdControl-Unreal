@@ -664,10 +664,12 @@ void UCrowdControlSubsystem::UnregisterEffectComponent(UCrowdControlEffectCompon
 		return;
 	}
 
-	const TWeakObjectPtr<UCrowdControlEffectComponent>* Found = EffectComponents.Find(Component->EffectID);
-	if (Found != nullptr && Found->Get() == Component)
+	for (auto It = EffectComponents.CreateIterator(); It; ++It)
 	{
-		EffectComponents.Remove(Component->EffectID);
+		if (It.Value().Get() == Component)
+		{
+			It.RemoveCurrent();
+		}
 	}
 }
 
@@ -757,10 +759,13 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_SetAutoStartSession = (SetAutoStartSessionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAutoStartSession"));
 		CC_StartSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StartSession"));
 		CC_StopSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StopSession"));
-		CC_EffectFailTemporary = (EffectFailMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailTemporary"));
-		CC_EffectFailPermanent = (EffectFailMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailPermanent"));
+		CC_EffectSuccessWithMessage = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectSuccessWithMessage"));
+		CC_EffectFailureWithMessage = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailureWithMessage"));
+		CC_EffectFailTemporary = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailTemporary"));
+		CC_EffectFailPermanent = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailPermanent"));
 		CC_ReportEffectStatus = (ReportEffectStatusType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ReportEffectStatus"));
 		CC_SendPackMetadata = (SendPackMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SendPackMetadata"));
+		CC_CloneEffect = (CloneEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("CloneEffect"));
 
     	// Set GamePackID and GameName from developer settings
     	const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
@@ -1051,6 +1056,66 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 	}
 }
 
+bool UCrowdControlSubsystem::CloneEffect(const FString& SourceEffectID, const FString& DestinationEffectID)
+{
+	return CloneEffectToIDs(SourceEffectID, { DestinationEffectID });
+}
+
+bool UCrowdControlSubsystem::CloneEffectToIDs(const FString& SourceEffectID, const TArray<FString>& DestinationEffectIDs)
+{
+	if (!bIsInitialized || CC_CloneEffect == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CloneEffect failed because Crowd Control is not initialized or the loaded DLL does not support cloning."));
+		return false;
+	}
+
+	if (SourceEffectID.IsEmpty() || DestinationEffectIDs.IsEmpty())
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("CloneEffect requires a source ID and at least one destination ID."));
+		return false;
+	}
+
+	std::vector<std::string> DestinationStorage;
+	DestinationStorage.reserve(DestinationEffectIDs.Num());
+	for (const FString& DestinationEffectID : DestinationEffectIDs)
+	{
+		DestinationStorage.emplace_back(TCHAR_TO_UTF8(*DestinationEffectID));
+	}
+
+	std::vector<const char*> DestinationPointers;
+	DestinationPointers.reserve(DestinationStorage.size() + 1);
+	for (const std::string& Destination : DestinationStorage)
+	{
+		DestinationPointers.push_back(Destination.c_str());
+	}
+	DestinationPointers.push_back(nullptr);
+
+	if (!CC_CloneEffect(TCHAR_TO_UTF8(*SourceEffectID), DestinationPointers.data()))
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("Failed to clone effect '%s'."), *SourceEffectID);
+		return false;
+	}
+
+	if (const TWeakObjectPtr<UCrowdControlEffectComponent>* SourceComponent = EffectComponents.Find(SourceEffectID))
+	{
+		for (const FString& DestinationEffectID : DestinationEffectIDs)
+		{
+			EffectComponents.Add(DestinationEffectID, *SourceComponent);
+		}
+	}
+
+	const TSharedPtr<FJsonObject>* SourceMenuEntry = nullptr;
+	if (GameJsonObject.IsValid() && GameJsonObject->TryGetObjectField(SourceEffectID, SourceMenuEntry))
+	{
+		for (const FString& DestinationEffectID : DestinationEffectIDs)
+		{
+			GameJsonObject->SetObjectField(DestinationEffectID, *SourceMenuEntry);
+		}
+	}
+
+	return true;
+}
+
 void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo& Info)
 {
 	if(!bIsInitialized)
@@ -1216,6 +1281,25 @@ void UCrowdControlSubsystem::EffectSuccess(FString id)
 	CC_EffectSuccess(TCHAR_TO_UTF8(*id));
 }
 
+void UCrowdControlSubsystem::EffectSuccessWithMessage(FString id, FString Message)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect success call failed! Currently not initialized!"))
+		return;
+	}
+
+	if (CC_EffectSuccessWithMessage != nullptr)
+	{
+		CC_EffectSuccessWithMessage(TCHAR_TO_UTF8(*id), TCHAR_TO_UTF8(*Message));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("EffectSuccessWithMessage is not supported by the loaded CrowdControl.dll - sending success without a message. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+		EffectSuccess(id);
+	}
+}
+
 void UCrowdControlSubsystem::EffectFailure(FString id)
 {
 	if(!bIsInitialized)
@@ -1225,6 +1309,24 @@ void UCrowdControlSubsystem::EffectFailure(FString id)
 	}
 	
 	CC_EffectFailure(TCHAR_TO_UTF8(*id));
+}
+
+void UCrowdControlSubsystem::EffectFailureWithMessage(FString id, FString Message)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect failure call failed! Currently not initialized!"))
+		return;
+	}
+
+	if (CC_EffectFailureWithMessage != nullptr)
+	{
+		CC_EffectFailureWithMessage(TCHAR_TO_UTF8(*id), TCHAR_TO_UTF8(*Message));
+	}
+	else
+	{
+		EffectFailureTemporary(id, Message);
+	}
 }
 
 bool UCrowdControlSubsystem::IsEffectRunning(FString name)
@@ -1372,7 +1474,7 @@ void UCrowdControlSubsystem::Update() {
 				{
 					if (TargetComponent != nullptr)
 					{
-						TargetComponent->HandleTrigger(Id, DurationValue, 1, FJsonObjectWrapper(), ViewerName);
+						TargetComponent->HandleTrigger(Id, EffectID, DurationValue, 1, FJsonObjectWrapper(), ViewerName);
 					}
 					else
 					{
@@ -1389,7 +1491,7 @@ void UCrowdControlSubsystem::Update() {
 
 					if (TargetComponent != nullptr)
 					{
-						TargetComponent->HandleTrigger(Id, 0.f, Quantity, ParamsWrapped, ViewerName);
+						TargetComponent->HandleTrigger(Id, EffectID, 0.f, Quantity, ParamsWrapped, ViewerName);
 					}
 					else
 					{
@@ -1398,7 +1500,7 @@ void UCrowdControlSubsystem::Update() {
 				}
 				else if (TargetComponent != nullptr)
 				{
-					TargetComponent->HandleTrigger(Id, 0.f, 1, FJsonObjectWrapper(), ViewerName);
+					TargetComponent->HandleTrigger(Id, EffectID, 0.f, 1, FJsonObjectWrapper(), ViewerName);
 				}
 				else
 				{
