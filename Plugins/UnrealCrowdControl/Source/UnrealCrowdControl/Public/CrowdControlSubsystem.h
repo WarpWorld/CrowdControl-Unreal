@@ -74,6 +74,15 @@ public:
 	// Resets login and connection
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	void ResetConnection();
+
+	UFUNCTION(BlueprintCallable, Category="Crowd Control", meta=(DeprecatedFunction, DeprecationMessage="Use Request Auth Code. Application authentication no longer depends on a streaming platform."))
+	void LoginTwitch();
+
+	UFUNCTION(BlueprintCallable, Category="Crowd Control", meta=(DeprecatedFunction, DeprecationMessage="Use Request Auth Code. Application authentication no longer depends on a streaming platform."))
+	void LoginYoutube();
+
+	UFUNCTION(BlueprintCallable, Category="Crowd Control", meta=(DeprecatedFunction, DeprecationMessage="Use Request Auth Code. Application authentication no longer depends on a streaming platform."))
+	void LoginDiscord();
 	
 	// Requests a fresh application auth code (requires ApplicationID in settings).
 	// The code/URL arrives via OnAuthCodeReceived.

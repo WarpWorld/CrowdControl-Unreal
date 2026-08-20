@@ -803,6 +803,21 @@ void UCrowdControlSubsystem::ResetConnection()
 	CC_ResetCommand();
 }
 
+void UCrowdControlSubsystem::LoginTwitch()
+{
+	RequestAuthCode();
+}
+
+void UCrowdControlSubsystem::LoginYoutube()
+{
+	RequestAuthCode();
+}
+
+void UCrowdControlSubsystem::LoginDiscord()
+{
+	RequestAuthCode();
+}
+
 void UCrowdControlSubsystem::RequestAuthCode()
 {
 	if (CC_RequestAuthCode != nullptr)
