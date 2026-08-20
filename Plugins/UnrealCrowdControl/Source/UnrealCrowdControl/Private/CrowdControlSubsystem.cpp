@@ -76,10 +76,6 @@ UCrowdControlSubsystem::CrowdControlFunctionType UCrowdControlSubsystem::CC_Crow
 UCrowdControlSubsystem::FP_Command UCrowdControlSubsystem::CC_CommandFunction;
 UCrowdControlSubsystem::ResetCommandType UCrowdControlSubsystem::CC_ResetCommand;
 
-UCrowdControlSubsystem::LoginTwitchType UCrowdControlSubsystem::CC_LoginTwitchFunction;
-UCrowdControlSubsystem::LoginDiscordType UCrowdControlSubsystem::CC_LoginDiscordFunction;
-UCrowdControlSubsystem::LoginYoutubeType UCrowdControlSubsystem::CC_LoginYoutubeFunction;
-
 typedef void(*BasicEffectType)(char* id, char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray);
 BasicEffectType CC_AddBasicEffect;
 typedef void(*TimedEffectType)(char* id, char* name, char* desc, int price, int retries, float retryDelay, float pendingDelay, bool sellable, bool visible, bool nonPoolable, int morality, int orderliness, char** categoriesArray, float duration);
@@ -706,9 +702,6 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_DisconnectFunction = (CrowdControlDisconnectFunctionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("DisconnectCrowdControl"));
 		
 		CC_ResetCommand = (ResetCommandType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ResetCommand"));
-		CC_LoginTwitchFunction = (LoginTwitchType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("LoginTwitch"));
-		CC_LoginDiscordFunction = (LoginDiscordType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("LoginDiscord"));
-		CC_LoginYoutubeFunction = (LoginYoutubeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("LoginYoutube"));
 		CC_StringTest = (StringTestType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetQueuedMessage"));
 
     	CC_EffectSuccess = (EffectSuccessFailureType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectSuccess"));
@@ -750,10 +743,9 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_EngineEffect = (EngineEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetEngineEffect"));
 		CC_SetEngine();
 
-		// appID auth-code flow, session control, effect reports & metadata.
+		// Application auth-code flow, session control, effect reports, and metadata.
 		// These may be null when running against an older CrowdControl.dll.
 		CC_SetAppID = (SetAppIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAppID"));
-		CC_SetPublicClientKey = (SetPublicClientKeyType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetPublicClientKey"));
 		CC_RequestAuthCode = (RequestAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("RequestAuthCode"));
 		CC_GetAuthCode = (GetAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetAuthCode"));
 		CC_SetAutoStartSession = (SetAutoStartSessionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAutoStartSession"));
@@ -767,24 +759,15 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_SendPackMetadata = (SendPackMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SendPackMetadata"));
 		CC_CloneEffect = (CloneEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("CloneEffect"));
 
-    	// Set GamePackID and GameName from developer settings
+		// The legacy setter remains the compatibility entry point for GamePackID.
     	const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
     	if(Settings)
     	{
-    		CC_SetGameNameAndPackID(TCHAR_TO_UTF8(*Settings->GameName), TCHAR_TO_UTF8(*Settings->GamePackID));
+			CC_SetGameNameAndPackID(TCHAR_TO_UTF8(*Settings->GamePackID), TCHAR_TO_UTF8(*Settings->GamePackID));
 
     		if (CC_SetAppID != nullptr && !Settings->ApplicationID.IsEmpty())
     		{
     			CC_SetAppID(TCHAR_TO_UTF8(*Settings->ApplicationID));
-    		}
-
-    		if (CC_SetPublicClientKey != nullptr && !Settings->PublicClientKey.IsEmpty())
-    		{
-    			CC_SetPublicClientKey(TCHAR_TO_UTF8(*Settings->PublicClientKey));
-    		}
-    		else if (!Settings->ApplicationID.IsEmpty() && Settings->PublicClientKey.IsEmpty())
-    		{
-    			UE_LOG(LogCrowdControl, Warning, TEXT("ApplicationID is set but PublicClientKey is empty - the auth code exchange may be rejected. Set your Public Client Key in Project Settings -> CrowdControlSettings."));
     		}
 
     		if (CC_SetAutoStartSession != nullptr)
@@ -818,21 +801,6 @@ void UCrowdControlSubsystem::Disconnect()
 void UCrowdControlSubsystem::ResetConnection()
 {
 	CC_ResetCommand();
-}
-
-void UCrowdControlSubsystem::LoginTwitch()
-{
-	CC_LoginTwitchFunction();
-}
-
-void UCrowdControlSubsystem::LoginYoutube()
-{
-	CC_LoginYoutubeFunction();
-}
-
-void UCrowdControlSubsystem::LoginDiscord()
-{
-	CC_LoginDiscordFunction();
 }
 
 void UCrowdControlSubsystem::RequestAuthCode()

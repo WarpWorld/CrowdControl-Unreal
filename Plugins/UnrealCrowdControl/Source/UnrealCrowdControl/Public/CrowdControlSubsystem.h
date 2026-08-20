@@ -75,15 +75,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	void ResetConnection();
 	
-	UFUNCTION(BlueprintCallable, Category="Crowd Control")
-	void LoginTwitch();
-	
-	UFUNCTION(BlueprintCallable, Category="Crowd Control")
-	void LoginYoutube();
-	
-	UFUNCTION(BlueprintCallable, Category="Crowd Control")
-	void LoginDiscord();
-
 	// Requests a fresh application auth code (requires ApplicationID in settings).
 	// The code/URL arrives via OnAuthCodeReceived.
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
@@ -311,20 +302,8 @@ public:
 	typedef void (*ResetCommandType)();
 	static ResetCommandType CC_ResetCommand;
 	
-	typedef void (*LoginTwitchType)();
-	static LoginTwitchType CC_LoginTwitchFunction;
-	
-	typedef void (*LoginDiscordType)();
-	static LoginDiscordType CC_LoginDiscordFunction;
-	
-	typedef void (*LoginYoutubeType)();
-	static LoginYoutubeType CC_LoginYoutubeFunction;
-
 	typedef void (*SetAppIDType)(const char* appID);
 	SetAppIDType CC_SetAppID = nullptr;
-
-	typedef void (*SetPublicClientKeyType)(const char* publicClientKey);
-	SetPublicClientKeyType CC_SetPublicClientKey = nullptr;
 
 	typedef void (*RequestAuthCodeType)();
 	RequestAuthCodeType CC_RequestAuthCode = nullptr;
