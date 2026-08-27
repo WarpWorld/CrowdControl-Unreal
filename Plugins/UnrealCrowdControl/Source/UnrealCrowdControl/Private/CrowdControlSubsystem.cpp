@@ -756,6 +756,7 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_EffectFailTemporary = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailTemporary"));
 		CC_EffectFailPermanent = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailPermanent"));
 		CC_ReportEffectStatus = (ReportEffectStatusType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ReportEffectStatus"));
+		CC_EffectMetadata = (EffectMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectMetadata"));
 		CC_SendPackMetadata = (SendPackMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SendPackMetadata"));
 		CC_CloneEffect = (CloneEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("CloneEffect"));
 
@@ -916,6 +917,24 @@ bool UCrowdControlSubsystem::SetEffectVisibility(FString EffectID, bool bVisible
 bool UCrowdControlSubsystem::SetEffectAvailability(FString EffectID, bool bAvailable)
 {
 	return ReportEffectStatus(EffectID, bAvailable ? ECrowdControlEffectReport::MenuAvailable : ECrowdControlEffectReport::MenuUnavailable);
+}
+
+void UCrowdControlSubsystem::EffectMetadata(const FString& Key, const FString& Value)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl EffectMetadata call failed! Currently not initialized!"))
+		return;
+	}
+
+	if (CC_EffectMetadata != nullptr)
+	{
+		CC_EffectMetadata(TCHAR_TO_UTF8(*Key), TCHAR_TO_UTF8(*Value));
+	}
+	else
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("EffectMetadata is not supported by the loaded CrowdControl.dll. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+	}
 }
 
 void UCrowdControlSubsystem::SendPackMetadataJson(const FString& MetadataJson)
@@ -1553,7 +1572,6 @@ UCrowdControlSubsystem::~UCrowdControlSubsystem()
 	MenuJson = "";
     Disconnect();
 }
-
 
 
 

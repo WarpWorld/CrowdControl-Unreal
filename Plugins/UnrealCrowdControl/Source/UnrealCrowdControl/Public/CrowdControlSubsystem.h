@@ -105,9 +105,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	void SetupParameterEffect(const FCrowdControlParameterEffectInfo& Info);
 
+	// Clones a registered effect definition to one new effect ID.
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	bool CloneEffect(const FString& SourceEffectID, const FString& DestinationEffectID);
 
+	// Atomically clones a registered effect definition to multiple new effect IDs.
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	bool CloneEffectToIDs(const FString& SourceEffectID, const TArray<FString>& DestinationEffectIDs);
 	
@@ -179,6 +181,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	bool SetEffectAvailability(FString EffectID, bool bAvailable);
+
+	// Sends one key/value pair through the EffectMetadata compatibility export
+	UFUNCTION(BlueprintCallable, Category="Crowd Control")
+	void EffectMetadata(const FString& Key, const FString& Value);
 
 	// Sends a packMetadataChanged RPC with a JSON object of key/value game state
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
@@ -336,6 +342,9 @@ public:
 	typedef bool (*ReportEffectStatusType)(const char* effectID, int status);
 	ReportEffectStatusType CC_ReportEffectStatus = nullptr;
 
+	typedef void (*EffectMetadataType)(const char* key, const char* value);
+	EffectMetadataType CC_EffectMetadata = nullptr;
+
 	typedef void (*SendPackMetadataType)(const char* metadataJson);
 	SendPackMetadataType CC_SendPackMetadata = nullptr;
 
@@ -415,5 +424,3 @@ protected:
 	void Tick(float DeltaTime);
 	int32 CommandID; 
 };
-
-
