@@ -113,3 +113,70 @@ struct FCrowdControlParameterEffectInfo : public FCrowdControlEffectInfo
 	UPROPERTY(BlueprintReadWrite, Category = CrowdControlParameterEffectInfo)
 	TArray<FCrowdControlParameter> parameters;
 };
+
+UENUM(BlueprintType)
+enum class ECrowdControlGameEventArgumentType : uint8
+{
+	Number,
+	Literal,
+};
+
+USTRUCT(BlueprintType)
+struct FCrowdControlGameEventLiteral
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	FString id;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	FString displayName;
+};
+
+USTRUCT(BlueprintType)
+struct FCrowdControlGameEventArgument
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	FString id;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	FString displayName;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	ECrowdControlGameEventArgumentType type = ECrowdControlGameEventArgumentType::Number;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	bool bHasMinimum = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event", meta = (EditCondition = "bHasMinimum"))
+	double minimum = 0.0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	bool bHasMaximum = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event", meta = (EditCondition = "bHasMaximum"))
+	double maximum = 0.0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	bool bInteger = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	TArray<FCrowdControlGameEventLiteral> literals;
+};
+
+USTRUCT(BlueprintType)
+struct FCrowdControlGameEventInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	FString id;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	FString displayName;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Crowd Control Game Event")
+	TArray<FCrowdControlGameEventArgument> arguments;
+};

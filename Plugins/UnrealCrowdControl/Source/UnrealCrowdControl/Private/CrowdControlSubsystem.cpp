@@ -120,6 +120,7 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Runnable = nullptr;
 	MenuJson = "";
 	GameJsonObject = MakeShareable(new FJsonObject);
+	GameEventsJsonObject = MakeShareable(new FJsonObject);
 	
 	LoadDLL();
 	
@@ -141,6 +142,7 @@ void UCrowdControlSubsystem::Deinitialize()
 
 	MenuJson = "";
 	GameJsonObject.Reset();
+	GameEventsJsonObject.Reset();
 	if (Runnable) {
 		Runnable->EnsureCompletion();
 		Runnable.Reset();
@@ -153,10 +155,10 @@ void UCrowdControlSubsystem::Deinitialize()
 
 void UCrowdControlSubsystem::PrintEffectsToJsonFile()
 {
-	// Check if MenuJson is not empty
-	if (MenuJson.IsEmpty())
+	if ((!GameJsonObject.IsValid() || GameJsonObject->Values.IsEmpty()) &&
+		(!GameEventsJsonObject.IsValid() || GameEventsJsonObject->Values.IsEmpty()))
 	{
-		UE_LOG(LogCrowdControl, Warning, TEXT("MenuJson is empty. Nothing to write to file."));
+		UE_LOG(LogCrowdControl, Warning, TEXT("No effects or game events are registered. Nothing to write to file."));
 		return;
 	}
 
@@ -170,6 +172,13 @@ void UCrowdControlSubsystem::PrintEffectsToJsonFile()
 
 
 	RootJsonObject->SetObjectField("effects", EffectsJsonObject);
+
+	if (GameEventsJsonObject.IsValid() && !GameEventsJsonObject->Values.IsEmpty())
+	{
+		TSharedPtr<FJsonObject> MetaJsonObject = MakeShareable(new FJsonObject);
+		MetaJsonObject->SetObjectField("events", GameEventsJsonObject);
+		RootJsonObject->SetObjectField("meta", MetaJsonObject);
+	}
 
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
@@ -758,6 +767,7 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_ReportEffectStatus = (ReportEffectStatusType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("ReportEffectStatus"));
 		CC_EffectMetadata = (EffectMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectMetadata"));
 		CC_SendPackMetadata = (SendPackMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SendPackMetadata"));
+		CC_TriggerEvent = (TriggerEventType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("TriggerEvent"));
 		CC_CloneEffect = (CloneEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("CloneEffect"));
 
 		// The legacy setter remains the compatibility entry point for GamePackID.
@@ -1061,6 +1071,126 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 bool UCrowdControlSubsystem::CloneEffect(const FString& SourceEffectID, const FString& DestinationEffectID)
 {
 	return CloneEffectToIDs(SourceEffectID, { DestinationEffectID });
+}
+
+bool UCrowdControlSubsystem::SetupGameEvent(const FCrowdControlGameEventInfo& Info)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("SetupGameEvent failed because Crowd Control is not initialized."));
+		return false;
+	}
+
+	if (Info.id.IsEmpty() || Info.displayName.IsEmpty())
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("SetupGameEvent requires a non-empty ID and display name."));
+		return false;
+	}
+
+	if (!GameEventsJsonObject.IsValid())
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("SetupGameEvent failed because the event manifest is not initialized."));
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> EventJsonObject = MakeShared<FJsonObject>();
+	EventJsonObject->SetStringField("name", Info.displayName);
+
+	if (!Info.arguments.IsEmpty())
+	{
+		TSharedPtr<FJsonObject> ArgumentsJsonObject = MakeShared<FJsonObject>();
+		for (const FCrowdControlGameEventArgument& Argument : Info.arguments)
+		{
+			if (Argument.id.IsEmpty() || Argument.displayName.IsEmpty())
+			{
+				UE_LOG(LogCrowdControl, Error, TEXT("SetupGameEvent '%s' has an argument without an ID or display name."), *Info.id);
+				return false;
+			}
+
+			TSharedPtr<FJsonObject> ArgumentJsonObject = MakeShared<FJsonObject>();
+			ArgumentJsonObject->SetStringField("name", Argument.displayName);
+			if (Argument.type == ECrowdControlGameEventArgumentType::Number)
+			{
+				ArgumentJsonObject->SetStringField("type", "number");
+				if (Argument.bHasMinimum)
+				{
+					ArgumentJsonObject->SetNumberField("min", Argument.minimum);
+				}
+				if (Argument.bHasMaximum)
+				{
+					ArgumentJsonObject->SetNumberField("max", Argument.maximum);
+				}
+				if (Argument.bInteger)
+				{
+					ArgumentJsonObject->SetBoolField("int", true);
+				}
+			}
+			else
+			{
+				TSharedPtr<FJsonObject> LiteralsJsonObject = MakeShared<FJsonObject>();
+				for (const FCrowdControlGameEventLiteral& Literal : Argument.literals)
+				{
+					if (Literal.id.IsEmpty() || Literal.displayName.IsEmpty())
+					{
+						UE_LOG(LogCrowdControl, Error, TEXT("SetupGameEvent '%s' has a literal without an ID or display name."), *Info.id);
+						return false;
+					}
+
+					TSharedPtr<FJsonObject> LiteralJsonObject = MakeShared<FJsonObject>();
+					LiteralJsonObject->SetStringField("name", Literal.displayName);
+					LiteralsJsonObject->SetObjectField(Literal.id, LiteralJsonObject);
+				}
+				ArgumentJsonObject->SetStringField("type", "literal");
+				ArgumentJsonObject->SetObjectField("literals", LiteralsJsonObject);
+			}
+
+			ArgumentsJsonObject->SetObjectField(Argument.id, ArgumentJsonObject);
+		}
+		EventJsonObject->SetObjectField("args", ArgumentsJsonObject);
+	}
+
+	GameEventsJsonObject->SetObjectField(Info.id, EventJsonObject);
+	return true;
+}
+
+bool UCrowdControlSubsystem::TriggerGameEvent(const FString& EventID)
+{
+	return TriggerGameEventJson(EventID, TEXT(""));
+}
+
+bool UCrowdControlSubsystem::TriggerGameEventJson(const FString& EventID, const FString& ArgsJson)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("TriggerGameEvent failed because Crowd Control is not initialized."));
+		return false;
+	}
+
+	if (EventID.IsEmpty())
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("TriggerGameEvent requires a non-empty event ID."));
+		return false;
+	}
+
+	if (CC_TriggerEvent == nullptr)
+	{
+		UE_LOG(LogCrowdControl, Error, TEXT("TriggerEvent is not supported by the loaded CrowdControl.dll. Please update CrowdControl.dll in Plugins/UnrealCrowdControl/Binaries/Win64 to the latest version."));
+		return false;
+	}
+
+	if (!ArgsJson.IsEmpty())
+	{
+		TSharedPtr<FJsonObject> ArgsJsonObject;
+		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ArgsJson);
+		if (!FJsonSerializer::Deserialize(Reader, ArgsJsonObject) || !ArgsJsonObject.IsValid())
+		{
+			UE_LOG(LogCrowdControl, Error, TEXT("TriggerGameEventJson requires ArgsJson to be a valid JSON object."));
+			return false;
+		}
+	}
+
+	CC_TriggerEvent(TCHAR_TO_UTF8(*EventID), ArgsJson.IsEmpty() ? nullptr : TCHAR_TO_UTF8(*ArgsJson));
+	return true;
 }
 
 bool UCrowdControlSubsystem::CloneEffectToIDs(const FString& SourceEffectID, const TArray<FString>& DestinationEffectIDs)
@@ -1572,8 +1702,5 @@ UCrowdControlSubsystem::~UCrowdControlSubsystem()
 	MenuJson = "";
     Disconnect();
 }
-
-
-
 
 

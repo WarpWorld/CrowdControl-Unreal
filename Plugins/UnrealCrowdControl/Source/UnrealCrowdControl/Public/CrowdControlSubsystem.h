@@ -105,6 +105,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	void SetupParameterEffect(const FCrowdControlParameterEffectInfo& Info);
 
+	// Adds or replaces a game event definition in the generated menu manifest.
+	UFUNCTION(BlueprintCallable, Category="Crowd Control|Game Events")
+	bool SetupGameEvent(const FCrowdControlGameEventInfo& Info);
+
+	// Reports an occurrence of a registered game event without arguments.
+	UFUNCTION(BlueprintCallable, Category="Crowd Control|Game Events")
+	bool TriggerGameEvent(const FString& EventID);
+
+	// Reports an occurrence of a registered game event with a JSON object of arguments.
+	UFUNCTION(BlueprintCallable, Category="Crowd Control|Game Events")
+	bool TriggerGameEventJson(const FString& EventID, const FString& ArgsJson);
+
 	// Clones a registered effect definition to one new effect ID.
 	UFUNCTION(BlueprintCallable, Category="Crowd Control")
 	bool CloneEffect(const FString& SourceEffectID, const FString& DestinationEffectID);
@@ -348,6 +360,9 @@ public:
 	typedef void (*SendPackMetadataType)(const char* metadataJson);
 	SendPackMetadataType CC_SendPackMetadata = nullptr;
 
+	typedef void (*TriggerEventType)(const char* eventID, const char* argsJson);
+	TriggerEventType CC_TriggerEvent = nullptr;
+
 	typedef bool (*CloneEffectType)(const char* sourceEffectID, const char** destEffectIDs);
 	CloneEffectType CC_CloneEffect = nullptr;
 
@@ -415,6 +430,7 @@ protected:
 
 	FString MenuJson;
 	TSharedPtr<FJsonObject> GameJsonObject;
+	TSharedPtr<FJsonObject> GameEventsJsonObject;
 
 	void* DLLHandle = nullptr;
 	std::mutex QueueMutex;

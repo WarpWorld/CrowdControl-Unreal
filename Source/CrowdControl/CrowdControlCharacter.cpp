@@ -2,6 +2,7 @@
 
 #include "CrowdControlCharacter.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/GameInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -14,6 +15,7 @@
 #include "InputMappingContext.h"
 #include "InputActionValue.h"
 #include "UObject/ConstructorHelpers.h"
+#include "CrowdControlSubsystem.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -88,6 +90,18 @@ void ACrowdControlCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 	InitializeDefaultInputMapping();
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UCrowdControlSubsystem* CrowdControlSubsystem = GameInstance->GetSubsystem<UCrowdControlSubsystem>())
+		{
+			CrowdControlSubsystem->OnSessionReady.AddDynamic(this, &ACrowdControlCharacter::RegisterDemoGameEvents);
+			if (CrowdControlSubsystem->IsInitialized())
+			{
+				RegisterDemoGameEvents();
+			}
+		}
+	}
 }
 
 void ACrowdControlCharacter::InitializeDefaultInputMapping()
@@ -125,7 +139,7 @@ void ACrowdControlCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		// Jumping
 		if (JumpAction)
 		{
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACrowdControlCharacter::HandleJumpStarted);
 			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		}
 
@@ -144,6 +158,33 @@ void ACrowdControlCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 	else
 	{
 		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+	}
+}
+
+void ACrowdControlCharacter::RegisterDemoGameEvents()
+{
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UCrowdControlSubsystem* CrowdControlSubsystem = GameInstance->GetSubsystem<UCrowdControlSubsystem>())
+		{
+			FCrowdControlGameEventInfo JumpEvent;
+			JumpEvent.id = TEXT("player_jump");
+			JumpEvent.displayName = TEXT("Player Jumped");
+			CrowdControlSubsystem->SetupGameEvent(JumpEvent);
+		}
+	}
+}
+
+void ACrowdControlCharacter::HandleJumpStarted()
+{
+	Jump();
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UCrowdControlSubsystem* CrowdControlSubsystem = GameInstance->GetSubsystem<UCrowdControlSubsystem>())
+		{
+			CrowdControlSubsystem->TriggerGameEvent(TEXT("player_jump"));
+		}
 	}
 }
 
