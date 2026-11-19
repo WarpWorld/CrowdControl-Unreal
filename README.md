@@ -29,6 +29,7 @@ This branch supports Unreal Engine **5.0–5.5** (Win64). For UE 4.27 support, c
 ```ini
 [/Script/UnrealCrowdControl.CrowdControlDeveloperSettings]
 GamePackID=UnrealDemo
+GameVersion=
 GameName=Unreal Demo
 ApplicationID=your-app-id
 PublicClientKey=your-public-client-key
@@ -36,6 +37,8 @@ bStartSessionAutomatically=True
 ```
 
 `GamePackID`/`GameName` identify your effect pack (`UnrealDemo` is the shared testing pack). `ApplicationID` and `PublicClientKey` are issued by Crowd Control when you register your application; when set, connecting uses the auth-code flow instead of the platform login prompt.
+
+`GameVersion` is optional and, when set, is sent as the `X-CC-Version` header on WebSocket and HTTP requests. Leave it empty to omit the header.
 
 3. Call `Connect` on the `CrowdControlSubsystem`, display the code/URL from `OnAuthCodeReceived`, and you're live once the viewer authorizes.
 

@@ -19,6 +19,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Config, meta=(Categories="Config"))
 	FString GamePackID = "UnrealDemo";
 
+	// Optional game version sent as X-CC-Version. Leave empty to omit the header.
+	UPROPERTY(config, EditAnywhere, Category=Config, meta=(Categories="Config"))
+	FString GameVersion = "";
+
 	// Application ID issued by Crowd Control. When set, authentication uses the
 	// appID auth-code flow (OnAuthCodeReceived fires with a code/URL for the user)
 	// instead of the legacy Twitch/YouTube/Discord platform login.
@@ -28,5 +32,9 @@ public:
 	// Automatically start a game session once authenticated and subscribed.
 	UPROPERTY(config, EditAnywhere, Category=Config, meta=(Categories="Config"))
 	bool bStartSessionAutomatically = true;
+
+	// When true, automatically opens the auth URL in a browser if no auth-code listeners are bound.
+	UPROPERTY(config, EditAnywhere, Category=Config, meta=(Categories="Config"))
+	bool bOpenAuthURLWhenUnhandled = true;
 
 };

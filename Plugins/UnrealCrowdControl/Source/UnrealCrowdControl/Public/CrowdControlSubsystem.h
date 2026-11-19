@@ -332,6 +332,9 @@ public:
 	typedef void (*SetAppIDType)(const char* appID);
 	SetAppIDType CC_SetAppID = nullptr;
 
+	typedef void (*SetGameVersionType)(const char* version);
+	SetGameVersionType CC_SetGameVersion = nullptr;
+
 	typedef void (*RequestAuthCodeType)();
 	RequestAuthCodeType CC_RequestAuthCode = nullptr;
 
@@ -431,10 +434,17 @@ protected:
 	FString MenuJson;
 	TSharedPtr<FJsonObject> GameJsonObject;
 	TSharedPtr<FJsonObject> GameEventsJsonObject;
+	FString LastMenuGenerationError;
 
 	void* DLLHandle = nullptr;
 	std::mutex QueueMutex;
     std::queue<std::function<void()>> MainThreadTasks;
+
+	bool HasAuthCodeListeners() const;
+	FString BuildEffectContext(const FString& EffectID) const;
+	void SetMenuGenerationError(const FString& ErrorMessage);
+	void ReportMenuExportFailure(const FString& Stage, const FString& Detail);
+	void ReportMenuExportSuccess(const FString& FilePath, int32 EffectCount) const;
 	
 	void Update();
 	void Tick(float DeltaTime);

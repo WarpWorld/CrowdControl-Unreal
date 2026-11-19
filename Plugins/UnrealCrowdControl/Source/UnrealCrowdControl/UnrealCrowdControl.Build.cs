@@ -14,7 +14,9 @@ public class UnrealCrowdControl : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"DeveloperSettings"
+				"DeveloperSettings",
+				"Slate",
+				"SlateCore"
 				// ... add private dependencies that you statically link with here ...	
 			}
 		);

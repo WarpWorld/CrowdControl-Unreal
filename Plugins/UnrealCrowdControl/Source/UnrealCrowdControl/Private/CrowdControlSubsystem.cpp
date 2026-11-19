@@ -8,8 +8,10 @@
 #include "CrowdControlEffectComponent.h"
 #include "CrowdControlFunctionLibrary.h"
 #include "CrowdControlLogChannels.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "Logging/LogMacros.h"
 #include "JsonUtilities.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #include <memory>
 #include <string>
@@ -104,6 +106,66 @@ EffectIsRunningType CC_IsRunning;
 typedef void(*SetGameNameAndPackIDType)(char* name, char* packId);
 SetGameNameAndPackIDType CC_SetGameNameAndPackID;
 
+bool UCrowdControlSubsystem::HasAuthCodeListeners() const
+{
+	return OnAuthCodeReceived.IsBound();
+}
+
+FString UCrowdControlSubsystem::BuildEffectContext(const FString& EffectID) const
+{
+	const TWeakObjectPtr<UCrowdControlEffectComponent>* ComponentPtr = EffectComponents.Find(EffectID);
+	if (ComponentPtr != nullptr && ComponentPtr->IsValid())
+	{
+		const UCrowdControlEffectComponent* Component = ComponentPtr->Get();
+		const AActor* Owner = Component->GetOwner();
+		return FString::Printf(
+			TEXT("effectID='%s', component='%s', owner='%s'"),
+			*EffectID,
+			*GetNameSafe(Component),
+			*GetNameSafe(Owner));
+	}
+
+	return FString::Printf(TEXT("effectID='%s'"), *EffectID);
+}
+
+void UCrowdControlSubsystem::SetMenuGenerationError(const FString& ErrorMessage)
+{
+	LastMenuGenerationError = ErrorMessage;
+	UE_LOG(LogCrowdControl, Error, TEXT("%s"), *ErrorMessage);
+}
+
+void UCrowdControlSubsystem::ReportMenuExportFailure(const FString& Stage, const FString& Detail)
+{
+	const FString Message = FString::Printf(TEXT("CCMenu export failed during %s: %s"), *Stage, *Detail);
+	UE_LOG(LogCrowdControl, Error, TEXT("%s"), *Message);
+#if WITH_EDITOR
+	FNotificationInfo Notification(FText::FromString(Message));
+	Notification.ExpireDuration = 6.0f;
+	Notification.bUseSuccessFailIcons = true;
+	Notification.bFireAndForget = true;
+	if (TSharedPtr<SNotificationItem> Item = FSlateNotificationManager::Get().AddNotification(Notification))
+	{
+		Item->SetCompletionState(SNotificationItem::CS_Fail);
+	}
+#endif
+}
+
+void UCrowdControlSubsystem::ReportMenuExportSuccess(const FString& FilePath, const int32 EffectCount) const
+{
+	UE_LOG(LogCrowdControl, Log, TEXT("Successfully wrote CCMenu export to '%s' (%d entries)."), *FilePath, EffectCount);
+#if WITH_EDITOR
+	const FString Message = FString::Printf(TEXT("CCMenu exported to %s (%d entries)."), *FilePath, EffectCount);
+	FNotificationInfo Notification(FText::FromString(Message));
+	Notification.ExpireDuration = 3.0f;
+	Notification.bUseSuccessFailIcons = true;
+	Notification.bFireAndForget = true;
+	if (TSharedPtr<SNotificationItem> Item = FSlateNotificationManager::Get().AddNotification(Notification))
+	{
+		Item->SetCompletionState(SNotificationItem::CS_Success);
+	}
+#endif
+}
+
 UCrowdControlSubsystem& UCrowdControlSubsystem::Get(const UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::Assert);
@@ -119,6 +181,7 @@ void UCrowdControlSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	Runnable = nullptr;
 	MenuJson = "";
+	LastMenuGenerationError.Reset();
 	GameJsonObject = MakeShareable(new FJsonObject);
 	GameEventsJsonObject = MakeShareable(new FJsonObject);
 	
@@ -155,55 +218,53 @@ void UCrowdControlSubsystem::Deinitialize()
 
 void UCrowdControlSubsystem::PrintEffectsToJsonFile()
 {
-	if ((!GameJsonObject.IsValid() || GameJsonObject->Values.IsEmpty()) &&
-		(!GameEventsJsonObject.IsValid() || GameEventsJsonObject->Values.IsEmpty()))
+	if (!GameJsonObject.IsValid() || !GameEventsJsonObject.IsValid())
 	{
-		UE_LOG(LogCrowdControl, Warning, TEXT("No effects or game events are registered. Nothing to write to file."));
+		ReportMenuExportFailure(TEXT("discovery/loading"), TEXT("Manifest containers are not initialized. Reconnect Crowd Control and register effects again."));
+		return;
+	}
+
+	if (!LastMenuGenerationError.IsEmpty())
+	{
+		ReportMenuExportFailure(TEXT("metadata construction"), LastMenuGenerationError);
+		return;
+	}
+
+	if (GameJsonObject->Values.IsEmpty() && GameEventsJsonObject->Values.IsEmpty())
+	{
+		UE_LOG(LogCrowdControl, Warning, TEXT("No effects or game events are registered. Nothing to export."));
 		return;
 	}
 
 	TSharedPtr<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject);
-
-
 	TSharedPtr<FJsonObject> EffectsJsonObject = MakeShareable(new FJsonObject);
+	EffectsJsonObject->SetObjectField(TEXT("game"), GameJsonObject);
+	RootJsonObject->SetObjectField(TEXT("effects"), EffectsJsonObject);
 
-
-	EffectsJsonObject->SetObjectField("game", GameJsonObject);
-
-
-	RootJsonObject->SetObjectField("effects", EffectsJsonObject);
-
-	if (GameEventsJsonObject.IsValid() && !GameEventsJsonObject->Values.IsEmpty())
+	if (!GameEventsJsonObject->Values.IsEmpty())
 	{
 		TSharedPtr<FJsonObject> MetaJsonObject = MakeShareable(new FJsonObject);
-		MetaJsonObject->SetObjectField("events", GameEventsJsonObject);
-		RootJsonObject->SetObjectField("meta", MetaJsonObject);
+		MetaJsonObject->SetObjectField(TEXT("events"), GameEventsJsonObject);
+		RootJsonObject->SetObjectField(TEXT("meta"), MetaJsonObject);
 	}
 
 	FString JsonString;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
-	if (FJsonSerializer::Serialize(RootJsonObject.ToSharedRef(), Writer))
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (!FJsonSerializer::Serialize(RootJsonObject.ToSharedRef(), Writer))
 	{
-		MenuJson = JsonString; 
-		UE_LOG(LogCrowdControl, Log, TEXT("Effects JSON: %s"), *JsonString);
-	}
-	else
-	{
-		UE_LOG(LogCrowdControl, Error, TEXT("Failed to serialize effects JSON."));
+		ReportMenuExportFailure(TEXT("JSON formatting"), TEXT("Failed to serialize the final manifest JSON."));
+		return;
 	}
 
-	// Get the file path in the Saved folder
-	FString FilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CCMenu.json"));
+	MenuJson = JsonString;
+	const FString FilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CCMenu.json"));
+	if (!FFileHelper::SaveStringToFile(JsonString, *FilePath))
+	{
+		ReportMenuExportFailure(TEXT("file writing"), FString::Printf(TEXT("Unable to write '%s'."), *FilePath));
+		return;
+	}
 
-	// Overwrite the file if it already exists, or create it if it doesn't
-	if (FFileHelper::SaveStringToFile(JsonString, *FilePath))
-	{
-		UE_LOG(LogCrowdControl, Log, TEXT("Successfully wrote MenuJson to file: %s"), *FilePath);
-	}
-	else
-	{
-		UE_LOG(LogCrowdControl, Error, TEXT("Failed to write MenuJson to file: %s"), *FilePath);
-	}
+	ReportMenuExportSuccess(FilePath, GameJsonObject->Values.Num() + GameEventsJsonObject->Values.Num());
 }
 
 
@@ -755,6 +816,7 @@ void UCrowdControlSubsystem::LoadDLL()
 		// Application auth-code flow, session control, effect reports, and metadata.
 		// These may be null when running against an older CrowdControl.dll.
 		CC_SetAppID = (SetAppIDType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAppID"));
+		CC_SetGameVersion = (SetGameVersionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetGameVersion"));
 		CC_RequestAuthCode = (RequestAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("RequestAuthCode"));
 		CC_GetAuthCode = (GetAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetAuthCode"));
 		CC_SetAutoStartSession = (SetAutoStartSessionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAutoStartSession"));
@@ -775,6 +837,15 @@ void UCrowdControlSubsystem::LoadDLL()
     	if(Settings)
     	{
 			CC_SetGameNameAndPackID(TCHAR_TO_UTF8(*Settings->GamePackID), TCHAR_TO_UTF8(*Settings->GamePackID));
+
+			if (CC_SetGameVersion != nullptr)
+			{
+				CC_SetGameVersion(TCHAR_TO_UTF8(*Settings->GameVersion));
+			}
+			else if (!Settings->GameVersion.IsEmpty())
+			{
+				UE_LOG(LogCrowdControl, Warning, TEXT("GameVersion is configured, but the loaded CrowdControl.dll does not support the SetGameVersion export. Rebuild CrowdControl.dll to send X-CC-Version."));
+			}
 
     		if (CC_SetAppID != nullptr && !Settings->ApplicationID.IsEmpty())
     		{
@@ -1031,6 +1102,12 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect setup call failed! Currently not initialized!"))
 		return;
 	}
+	LastMenuGenerationError.Reset();
+	if (Info.id.IsEmpty())
+	{
+		SetMenuGenerationError(TEXT("Effect registration failed: effectID is empty."));
+		return;
+	}
 
 	// Convert Info to JSON
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
@@ -1055,6 +1132,13 @@ void UCrowdControlSubsystem::SetupEffect(const FCrowdControlEffectInfo& Info)
 		MenuJson += JsonString;
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
+	else
+	{
+		SetMenuGenerationError(FString::Printf(
+			TEXT("Effect registration failed (%s): effect serialization failed."),
+			*BuildEffectContext(Info.id)));
+		return;
+	}
 	
 	if (CC_AddBasicEffect != nullptr)
 	{
@@ -1075,6 +1159,7 @@ bool UCrowdControlSubsystem::CloneEffect(const FString& SourceEffectID, const FS
 
 bool UCrowdControlSubsystem::SetupGameEvent(const FCrowdControlGameEventInfo& Info)
 {
+	LastMenuGenerationError.Reset();
 	if (!bIsInitialized)
 	{
 		UE_LOG(LogCrowdControl, Warning, TEXT("SetupGameEvent failed because Crowd Control is not initialized."));
@@ -1083,7 +1168,7 @@ bool UCrowdControlSubsystem::SetupGameEvent(const FCrowdControlGameEventInfo& In
 
 	if (Info.id.IsEmpty() || Info.displayName.IsEmpty())
 	{
-		UE_LOG(LogCrowdControl, Error, TEXT("SetupGameEvent requires a non-empty ID and display name."));
+		SetMenuGenerationError(TEXT("Game event registration failed: event ID and display name are required."));
 		return false;
 	}
 
@@ -1099,13 +1184,25 @@ bool UCrowdControlSubsystem::SetupGameEvent(const FCrowdControlGameEventInfo& In
 	if (!Info.arguments.IsEmpty())
 	{
 		TSharedPtr<FJsonObject> ArgumentsJsonObject = MakeShared<FJsonObject>();
+		TSet<FString> SeenArgumentIDs;
 		for (const FCrowdControlGameEventArgument& Argument : Info.arguments)
 		{
 			if (Argument.id.IsEmpty() || Argument.displayName.IsEmpty())
 			{
-				UE_LOG(LogCrowdControl, Error, TEXT("SetupGameEvent '%s' has an argument without an ID or display name."), *Info.id);
+				SetMenuGenerationError(FString::Printf(
+					TEXT("Game event registration failed (eventID='%s'): an argument has an empty ID or display name."),
+					*Info.id));
 				return false;
 			}
+			if (SeenArgumentIDs.Contains(Argument.id))
+			{
+				SetMenuGenerationError(FString::Printf(
+					TEXT("Game event registration failed (eventID='%s'): duplicate argument ID '%s'."),
+					*Info.id,
+					*Argument.id));
+				return false;
+			}
+			SeenArgumentIDs.Add(Argument.id);
 
 			TSharedPtr<FJsonObject> ArgumentJsonObject = MakeShared<FJsonObject>();
 			ArgumentJsonObject->SetStringField("name", Argument.displayName);
@@ -1128,13 +1225,27 @@ bool UCrowdControlSubsystem::SetupGameEvent(const FCrowdControlGameEventInfo& In
 			else
 			{
 				TSharedPtr<FJsonObject> LiteralsJsonObject = MakeShared<FJsonObject>();
+				TSet<FString> SeenLiteralIDs;
 				for (const FCrowdControlGameEventLiteral& Literal : Argument.literals)
 				{
 					if (Literal.id.IsEmpty() || Literal.displayName.IsEmpty())
 					{
-						UE_LOG(LogCrowdControl, Error, TEXT("SetupGameEvent '%s' has a literal without an ID or display name."), *Info.id);
+						SetMenuGenerationError(FString::Printf(
+							TEXT("Game event registration failed (eventID='%s', argID='%s'): a literal has an empty ID or display name."),
+							*Info.id,
+							*Argument.id));
 						return false;
 					}
+					if (SeenLiteralIDs.Contains(Literal.id))
+					{
+						SetMenuGenerationError(FString::Printf(
+							TEXT("Game event registration failed (eventID='%s', argID='%s'): duplicate literal ID '%s'."),
+							*Info.id,
+							*Argument.id,
+							*Literal.id));
+						return false;
+					}
+					SeenLiteralIDs.Add(Literal.id);
 
 					TSharedPtr<FJsonObject> LiteralJsonObject = MakeShared<FJsonObject>();
 					LiteralJsonObject->SetStringField("name", Literal.displayName);
@@ -1255,6 +1366,12 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect setup call failed! Currently not initialized!"))
 		return;
 	}
+	LastMenuGenerationError.Reset();
+	if (Info.id.IsEmpty())
+	{
+		SetMenuGenerationError(TEXT("Timed effect registration failed: effectID is empty."));
+		return;
+	}
 	// Convert Info to JSON
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
 	JsonObject->SetStringField("name", Info.displayName);
@@ -1281,6 +1398,13 @@ void UCrowdControlSubsystem::SetupTimedEffect(const FCrowdControlTimedEffectInfo
 		MenuJson += JsonString;
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
 	}
+	else
+	{
+		SetMenuGenerationError(FString::Printf(
+			TEXT("Timed effect registration failed (%s): effect serialization failed."),
+			*BuildEffectContext(Info.id)));
+		return;
+	}
 	if (CC_AddTimedEffect != nullptr)
 	{
 		char** Categories = SplitCategories(Info.category);
@@ -1300,6 +1424,74 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 		UE_LOG(LogCrowdControl, Warning, TEXT("CrowdControl Effect setup call failed! Currently not initialized!"))
 		return;
 	}
+
+	LastMenuGenerationError.Reset();
+	if (Info.id.IsEmpty())
+	{
+		SetMenuGenerationError(TEXT("Parameter effect registration failed: effectID is empty."));
+		return;
+	}
+
+	TSet<FString> SeenParameterIDs;
+	for (const FCrowdControlParameter& Parameter : Info.parameters)
+	{
+		if (Parameter._id.IsEmpty())
+		{
+			SetMenuGenerationError(FString::Printf(
+				TEXT("Parameter effect registration failed (%s): parameter ID is empty."),
+				*BuildEffectContext(Info.id)));
+			return;
+		}
+
+		if (SeenParameterIDs.Contains(Parameter._id))
+		{
+			SetMenuGenerationError(FString::Printf(
+				TEXT("Parameter effect registration failed (%s): duplicate parameter ID '%s'."),
+				*BuildEffectContext(Info.id),
+				*Parameter._id));
+			return;
+		}
+		SeenParameterIDs.Add(Parameter._id);
+
+		if (Parameter.type == ECrowdControlParamType::MinMax && Parameter.min > Parameter.max)
+		{
+			SetMenuGenerationError(FString::Printf(
+				TEXT("Parameter effect registration failed (%s): parameter '%s' has min (%d) greater than max (%d)."),
+				*BuildEffectContext(Info.id),
+				*Parameter._id,
+				Parameter.min,
+				Parameter.max));
+			return;
+		}
+
+		if (Parameter.type == ECrowdControlParamType::OPTIONS)
+		{
+			TSet<FString> SeenOptionIDs;
+			for (const FCrowdControlParamOption& Option : Parameter._options)
+			{
+				if (Option.id.IsEmpty())
+				{
+					SetMenuGenerationError(FString::Printf(
+						TEXT("Parameter effect registration failed (%s): parameter '%s' contains an option with an empty ID."),
+						*BuildEffectContext(Info.id),
+						*Parameter._id));
+					return;
+				}
+
+				if (SeenOptionIDs.Contains(Option.id))
+				{
+					SetMenuGenerationError(FString::Printf(
+						TEXT("Parameter effect registration failed (%s): parameter '%s' has duplicate option ID '%s'."),
+						*BuildEffectContext(Info.id),
+						*Parameter._id,
+						*Option.id));
+					return;
+				}
+				SeenOptionIDs.Add(Option.id);
+			}
+		}
+	}
+
 	// Convert Info to JSON
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
 	JsonObject->SetStringField("name", Info.displayName);
@@ -1399,6 +1591,12 @@ void UCrowdControlSubsystem::SetupParameterEffect(const FCrowdControlParameterEf
 	{
 		MenuJson += JsonString;
 		UE_LOG(LogCrowdControl, Log, TEXT("SetupEffect Parameters: %s"), *JsonString);
+	}
+	else
+	{
+		SetMenuGenerationError(FString::Printf(
+			TEXT("Parameter effect registration failed (%s): effect serialization failed."),
+			*BuildEffectContext(Info.id)));
 	}
 }
 
@@ -1532,7 +1730,31 @@ void UCrowdControlSubsystem::Update() {
 				&& AuthCodeObject->TryGetStringField(TEXT("url"), URL))
 			{
 				UE_LOG(LogCrowdControl, Log, TEXT("Auth code received: %s (%s)"), *Code, *URL);
+				const bool bHadListeners = HasAuthCodeListeners();
 				OnAuthCodeReceived.Broadcast(Code, URL);
+
+				const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
+				const bool bAutoOpenEnabled = Settings == nullptr || Settings->bOpenAuthURLWhenUnhandled;
+				if (bAutoOpenEnabled && !bHadListeners)
+				{
+					if (URL.IsEmpty())
+					{
+						UE_LOG(LogCrowdControl, Error, TEXT("Auth URL fallback was requested, but the auth response did not include a URL."));
+					}
+					else
+					{
+						FString LaunchError;
+						FPlatformProcess::LaunchURL(*URL, nullptr, &LaunchError);
+						if (!LaunchError.IsEmpty())
+						{
+							UE_LOG(LogCrowdControl, Error, TEXT("Failed to launch auth URL '%s': %s"), *URL, *LaunchError);
+						}
+						else
+						{
+							UE_LOG(LogCrowdControl, Log, TEXT("No auth-code listeners were bound; opened auth URL automatically."));
+						}
+					}
+				}
 			}
 			else
 			{
@@ -1702,5 +1924,3 @@ UCrowdControlSubsystem::~UCrowdControlSubsystem()
 	MenuJson = "";
     Disconnect();
 }
-
-
