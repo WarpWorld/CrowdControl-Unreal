@@ -51,6 +51,7 @@ void UCrowdControlEffectComponent::Register()
 		return;
 	}
 
+	CrowdControl->RegisterEffectComponent(this);
 	if (EffectID.IsEmpty())
 	{
 		UE_LOG(LogCrowdControl, Error, TEXT("CrowdControlEffectComponent on %s has no EffectID set; not registering."), *GetNameSafe(GetOwner()));
@@ -79,7 +80,6 @@ void UCrowdControlEffectComponent::Register()
 		CrowdControl->SetupEffect(Info);
 	}
 
-	CrowdControl->RegisterEffectComponent(this);
 	bRegistered = true;
 }
 

@@ -434,15 +434,14 @@ protected:
 	FString MenuJson;
 	TSharedPtr<FJsonObject> GameJsonObject;
 	TSharedPtr<FJsonObject> GameEventsJsonObject;
-	FString LastMenuGenerationError;
+	TMap<FString, TPair<FString, FString>> MenuGenerationErrors;
 
 	void* DLLHandle = nullptr;
 	std::mutex QueueMutex;
     std::queue<std::function<void()>> MainThreadTasks;
 
-	bool HasAuthCodeListeners() const;
 	FString BuildEffectContext(const FString& EffectID) const;
-	void SetMenuGenerationError(const FString& ErrorMessage);
+	void SetMenuGenerationError(const FString& Stage, const FString& ErrorKey, const FString& ErrorMessage);
 	void ReportMenuExportFailure(const FString& Stage, const FString& Detail);
 	void ReportMenuExportSuccess(const FString& FilePath, int32 EffectCount) const;
 	
