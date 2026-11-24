@@ -33,6 +33,7 @@ enum class ECrowdControlConnectionState : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectionStateChanged, ECrowdControlConnectionState, State);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSessionReady);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnSessionStartFailed, FString, UserMessage, FString, Diagnostics, int32, HttpStatusCode);
 
 UENUM(BlueprintType)
 enum class ECrowdControlEffectReport : uint8
@@ -147,6 +148,11 @@ public:
 	// Fired once each time the connection becomes fully ready for effects.
 	UPROPERTY(BlueprintAssignable, Category = "Crowd Control")
 	FOnSessionReady OnSessionReady;
+
+	// Fired when the server rejects a game-session start or the request fails.
+	// UserMessage is suitable for UI; Diagnostics contains the raw response details.
+	UPROPERTY(BlueprintAssignable, Category = "Crowd Control")
+	FOnSessionStartFailed OnSessionStartFailed;
 
 	// Fired for every incoming effect request, before it is routed to a component or
 	// the trigger delegates. Bind notification/HUD widgets here ("Viewer sent Effect!").
@@ -347,6 +353,9 @@ public:
 	typedef void (*SessionControlType)();
 	SessionControlType CC_StartSession = nullptr;
 	SessionControlType CC_StopSession = nullptr;
+
+	typedef char* (*GetSessionStartErrorType)();
+	GetSessionStartErrorType CC_GetSessionStartError = nullptr;
 
 	typedef void (*EffectResponseMessageType)(const char* id, const char* message);
 	EffectResponseMessageType CC_EffectSuccessWithMessage = nullptr;

@@ -2,6 +2,7 @@
 
 #include "CrowdControlAutomationTestTypes.h"
 #include "CrowdControlManifest.h"
+#include "CrowdControlSessionStartError.h"
 #include "CrowdControlSubsystem.h"
 #include "Misc/AutomationTest.h"
 #include "Serialization/JsonSerializer.h"
@@ -126,6 +127,62 @@ bool FCrowdControlMenuExportDiagnosticsTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("multiple generation failures are summarized"), CrowdControlManifest::GetGenerationFailure(Errors, Stage, Detail));
 	TestTrue(TEXT("the summary points to additional diagnostics in the output log"),
 		Detail.Contains(TEXT("and 1 additional generation error(s); see Output Log")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FCrowdControlSessionStartFailureTest,
+	"CrowdControl.SessionStart.ErrorClassification",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FCrowdControlSessionStartFailureTest::RunTest(const FString& Parameters)
+{
+	const FString MissingPackResponse = TEXT("{\"code\":\"INTERNAL_SERVER_ERROR\",\"data\":{\"path\":\"gameSession.startSession\",\"stack\":\"Error: Game not found for ID demo\"}}");
+	const FString FailureResult = FString::Printf(
+		TEXT("{\"httpStatus\":500,\"gamePackID\":\"demo\",\"responseBody\":\"%s\",\"transportError\":\"\"}"),
+		*MissingPackResponse.ReplaceCharWithEscapedChar());
+	CrowdControlSessionStartError::FDetails Details;
+	TestTrue(
+		TEXT("the native DLL failure result envelope is parsed"),
+		CrowdControlSessionStartError::Parse(FailureResult, Details));
+	TestEqual(TEXT("the request-local game pack ID is preserved"), Details.GamePackID, FString(TEXT("demo")));
+	TestEqual(TEXT("the HTTP status is preserved"), Details.HttpStatusCode, 500);
+	TestEqual(TEXT("the response body is preserved"), Details.ResponseBody, MissingPackResponse);
+	TestTrue(
+		TEXT("the structured missing-game-pack response is recognized"),
+		CrowdControlSessionStartError::IsMissingGamePackResponse(500, MissingPackResponse));
+	TestEqual(
+		TEXT("the missing-pack response produces the actionable setup message"),
+		CrowdControlSessionStartError::BuildUserMessage(TEXT("demo"), 500, MissingPackResponse, FString()),
+		FString(TEXT("Cannot start Crowd Control session for game pack 'demo'. Verify the Game ID and upload the effect/menu JSON in the Crowd Control developer portal, then connect again.")));
+
+	const FString UnrelatedFailure = TEXT("{\"code\":\"INTERNAL_SERVER_ERROR\",\"data\":{\"path\":\"gameSession.startSession\",\"stack\":\"Error: Database unavailable\"}}");
+	TestFalse(
+		TEXT("an unrelated HTTP 500 is not classified as a missing game pack"),
+		CrowdControlSessionStartError::IsMissingGamePackResponse(500, UnrelatedFailure));
+	TestTrue(
+		TEXT("unrelated server failures use a generic user message"),
+		CrowdControlSessionStartError::BuildUserMessage(TEXT("demo"), 500, UnrelatedFailure, FString())
+			.StartsWith(TEXT("Could not start Crowd Control session"), ESearchCase::CaseSensitive));
+
+	TestFalse(
+		TEXT("the missing-pack body on a non-500 status is not classified"),
+		CrowdControlSessionStartError::IsMissingGamePackResponse(400, MissingPackResponse));
+	TestFalse(
+		TEXT("a missing or different request path is not classified"),
+		CrowdControlSessionStartError::IsMissingGamePackResponse(
+			500,
+			TEXT("{\"code\":\"INTERNAL_SERVER_ERROR\",\"data\":{\"path\":\"gameSession.stopSession\",\"stack\":\"Error: Game not found\"}}")));
+	TestFalse(
+		TEXT("a different error code is not classified"),
+		CrowdControlSessionStartError::IsMissingGamePackResponse(
+			500,
+			TEXT("{\"code\":\"BAD_REQUEST\",\"data\":{\"path\":\"gameSession.startSession\",\"stack\":\"Error: Game not found\"}}")));
+
+	TestTrue(
+		TEXT("transport failures report a connection issue"),
+		CrowdControlSessionStartError::BuildUserMessage(TEXT("demo"), 0, FString(), TEXT("connection refused"))
+			.Contains(TEXT("request failed before a server response")));
 	return true;
 }
 

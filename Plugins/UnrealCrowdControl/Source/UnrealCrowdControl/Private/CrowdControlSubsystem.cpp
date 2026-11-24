@@ -4,6 +4,7 @@
 #include "CoreGlobals.h"
 #include "CrowdControlDeveloperSettings.h"
 #include "CrowdControlManifest.h"
+#include "CrowdControlSessionStartError.h"
 #include "Misc/Paths.h"
 #include "CrowdControlRunable.h"
 #include "CrowdControlEffectComponent.h"
@@ -844,6 +845,7 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_SetAutoStartSession = (SetAutoStartSessionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAutoStartSession"));
 		CC_StartSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StartSession"));
 		CC_StopSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StopSession"));
+		CC_GetSessionStartError = (GetSessionStartErrorType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetSessionStartError"));
 		CC_EffectSuccessWithMessage = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectSuccessWithMessage"));
 		CC_EffectFailureWithMessage = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailureWithMessage"));
 		CC_EffectFailTemporary = (EffectResponseMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailTemporary"));
@@ -853,6 +855,10 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_SendPackMetadata = (SendPackMetadataType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SendPackMetadata"));
 		CC_TriggerEvent = (TriggerEventType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("TriggerEvent"));
 		CC_CloneEffect = (CloneEffectType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("CloneEffect"));
+		if (CC_GetSessionStartError == nullptr)
+		{
+			UE_LOG(LogCrowdControl, Warning, TEXT("The loaded CrowdControl.dll does not expose session-start failure details. Update the plugin DLL to receive OnSessionStartFailed events."));
+		}
 
 		// The legacy setter remains the compatibility entry point for GamePackID.
     	const UCrowdControlDeveloperSettings* Settings = GetDefault<UCrowdControlDeveloperSettings>();
@@ -1778,6 +1784,36 @@ void UCrowdControlSubsystem::StopEffect(FString id)
 
 void UCrowdControlSubsystem::Update() {
     std::lock_guard<std::mutex> lock(QueueMutex);
+
+	if (CC_GetSessionStartError != nullptr)
+	{
+		char* SessionStartErrorJson = CC_GetSessionStartError();
+		if (SessionStartErrorJson != nullptr && SessionStartErrorJson[0] != '\0')
+		{
+			const FString ErrorJson = UTF8_TO_TCHAR(SessionStartErrorJson);
+			CrowdControlSessionStartError::FDetails Details;
+			if (!CrowdControlSessionStartError::Parse(ErrorJson, Details))
+			{
+				UE_LOG(LogCrowdControl, Error, TEXT("Failed to parse Crowd Control session-start failure details: %s"), *ErrorJson);
+				Details.HttpStatusCode = -1;
+				Details.TransportError = TEXT("The CrowdControl.dll returned malformed session-start failure details.");
+			}
+
+			const FString UserMessage = CrowdControlSessionStartError::BuildUserMessage(
+				Details.GamePackID,
+				Details.HttpStatusCode,
+				Details.ResponseBody,
+				Details.TransportError);
+			const FString Diagnostics = FString::Printf(
+				TEXT("gamePackID='%s', HTTP status=%d, transportError='%s', responseBody=%s"),
+				*Details.GamePackID,
+				Details.HttpStatusCode,
+				*Details.TransportError,
+				Details.ResponseBody.IsEmpty() ? TEXT("<empty>") : *Details.ResponseBody);
+			UE_LOG(LogCrowdControl, Error, TEXT("Crowd Control session start failed: %s Diagnostics: %s"), *UserMessage, *Diagnostics);
+			OnSessionStartFailed.Broadcast(UserMessage, Diagnostics, Details.HttpStatusCode);
+		}
+	}
 	
 	if (CC_CommandFunction == nullptr)
 	{
