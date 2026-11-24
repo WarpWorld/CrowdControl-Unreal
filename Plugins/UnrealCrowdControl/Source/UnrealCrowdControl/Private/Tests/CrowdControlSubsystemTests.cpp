@@ -155,15 +155,38 @@ bool FCrowdControlSessionStartFailureTest::RunTest(const FString& Parameters)
 		TEXT("the missing-pack response produces the actionable setup message"),
 		CrowdControlSessionStartError::BuildUserMessage(TEXT("demo"), 500, MissingPackResponse, FString()),
 		FString(TEXT("Cannot start Crowd Control session for game pack 'demo'. Verify the Game ID and upload the effect/menu JSON in the Crowd Control developer portal, then connect again.")));
+	const FString MissingPackMessage = CrowdControlSessionStartError::BuildUserMessage(TEXT("demo"), 500, MissingPackResponse, FString());
+	TestFalse(
+		TEXT("the user-facing setup message does not expose the backend stack"),
+		MissingPackMessage.Contains(TEXT("Error: Game not found")));
+	const FString MissingPackDiagnostics = CrowdControlSessionStartError::BuildDiagnostics(Details);
+	TestTrue(
+		TEXT("technical diagnostics retain the backend stack"),
+		MissingPackDiagnostics.Contains(TEXT("Error: Game not found for ID demo")));
 
 	const FString UnrelatedFailure = TEXT("{\"code\":\"INTERNAL_SERVER_ERROR\",\"data\":{\"path\":\"gameSession.startSession\",\"stack\":\"Error: Database unavailable\"}}");
 	TestFalse(
 		TEXT("an unrelated HTTP 500 is not classified as a missing game pack"),
 		CrowdControlSessionStartError::IsMissingGamePackResponse(500, UnrelatedFailure));
+	const FString UnrelatedFailureMessage = CrowdControlSessionStartError::BuildUserMessage(
+		TEXT("demo"),
+		500,
+		UnrelatedFailure,
+		FString());
 	TestTrue(
 		TEXT("unrelated server failures use a generic user message"),
-		CrowdControlSessionStartError::BuildUserMessage(TEXT("demo"), 500, UnrelatedFailure, FString())
-			.StartsWith(TEXT("Could not start Crowd Control session"), ESearchCase::CaseSensitive));
+		UnrelatedFailureMessage.StartsWith(TEXT("Could not start Crowd Control session"), ESearchCase::CaseSensitive));
+	TestFalse(
+		TEXT("generic server errors do not display the raw backend stack"),
+		UnrelatedFailureMessage.Contains(TEXT("Database unavailable")));
+	CrowdControlSessionStartError::FDetails UnrelatedFailureDetails;
+	UnrelatedFailureDetails.GamePackID = TEXT("demo");
+	UnrelatedFailureDetails.HttpStatusCode = 500;
+	UnrelatedFailureDetails.ResponseBody = UnrelatedFailure;
+	TestTrue(
+		TEXT("generic server diagnostics retain the raw backend stack"),
+		CrowdControlSessionStartError::BuildDiagnostics(UnrelatedFailureDetails)
+			.Contains(TEXT("Error: Database unavailable")));
 
 	TestFalse(
 		TEXT("the missing-pack body on a non-500 status is not classified"),
@@ -178,6 +201,38 @@ bool FCrowdControlSessionStartFailureTest::RunTest(const FString& Parameters)
 		CrowdControlSessionStartError::IsMissingGamePackResponse(
 			500,
 			TEXT("{\"code\":\"BAD_REQUEST\",\"data\":{\"path\":\"gameSession.startSession\",\"stack\":\"Error: Game not found\"}}")));
+	TestFalse(
+		TEXT("the matching text in a top-level path is not accepted"),
+		CrowdControlSessionStartError::IsMissingGamePackResponse(
+			500,
+			TEXT("{\"code\":\"INTERNAL_SERVER_ERROR\",\"path\":\"gameSession.startSession\",\"data\":{\"stack\":\"Error: Game not found\"}}")));
+	TestFalse(
+		TEXT("the error stack prefix is matched case-sensitively"),
+		CrowdControlSessionStartError::IsMissingGamePackResponse(
+			500,
+			TEXT("{\"code\":\"INTERNAL_SERVER_ERROR\",\"data\":{\"path\":\"gameSession.startSession\",\"stack\":\"error: Game not found\"}}")));
+
+	CrowdControlSessionStartError::FDetails InvalidDetails;
+	InvalidDetails.GamePackID = TEXT("unchanged");
+	TestFalse(
+		TEXT("a missing envelope field is rejected"),
+		CrowdControlSessionStartError::Parse(
+			TEXT("{\"httpStatus\":500,\"gamePackID\":\"demo\",\"responseBody\":\"{}\"}"),
+			InvalidDetails));
+	TestEqual(
+		TEXT("a failed envelope parse does not partially overwrite output details"),
+		InvalidDetails.GamePackID,
+		FString(TEXT("unchanged")));
+	TestFalse(
+		TEXT("a string HTTP status is rejected"),
+		CrowdControlSessionStartError::Parse(
+			TEXT("{\"httpStatus\":\"500\",\"gamePackID\":\"demo\",\"responseBody\":\"{}\",\"transportError\":\"\"}"),
+			InvalidDetails));
+	TestFalse(
+		TEXT("a fractional HTTP status is rejected"),
+		CrowdControlSessionStartError::Parse(
+			TEXT("{\"httpStatus\":500.5,\"gamePackID\":\"demo\",\"responseBody\":\"{}\",\"transportError\":\"\"}"),
+			InvalidDetails));
 
 	TestTrue(
 		TEXT("transport failures report a connection issue"),

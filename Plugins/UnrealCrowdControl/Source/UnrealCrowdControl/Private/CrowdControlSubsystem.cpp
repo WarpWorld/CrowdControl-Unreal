@@ -1804,12 +1804,7 @@ void UCrowdControlSubsystem::Update() {
 				Details.HttpStatusCode,
 				Details.ResponseBody,
 				Details.TransportError);
-			const FString Diagnostics = FString::Printf(
-				TEXT("gamePackID='%s', HTTP status=%d, transportError='%s', responseBody=%s"),
-				*Details.GamePackID,
-				Details.HttpStatusCode,
-				*Details.TransportError,
-				Details.ResponseBody.IsEmpty() ? TEXT("<empty>") : *Details.ResponseBody);
+			const FString Diagnostics = CrowdControlSessionStartError::BuildDiagnostics(Details);
 			UE_LOG(LogCrowdControl, Error, TEXT("Crowd Control session start failed: %s Diagnostics: %s"), *UserMessage, *Diagnostics);
 			OnSessionStartFailed.Broadcast(UserMessage, Diagnostics, Details.HttpStatusCode);
 		}

@@ -18,18 +18,37 @@ namespace CrowdControlSessionStartError
 	{
 		TSharedPtr<FJsonObject> Result;
 		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResultJson);
-		double StatusCode = 0.0;
 		if (!FJsonSerializer::Deserialize(Reader, Result)
-			|| !Result.IsValid()
-			|| !Result->TryGetNumberField(TEXT("httpStatus"), StatusCode)
-			|| !Result->TryGetStringField(TEXT("gamePackID"), OutDetails.GamePackID)
-			|| !Result->TryGetStringField(TEXT("responseBody"), OutDetails.ResponseBody)
-			|| !Result->TryGetStringField(TEXT("transportError"), OutDetails.TransportError))
+			|| !Result.IsValid())
 		{
 			return false;
 		}
 
-		OutDetails.HttpStatusCode = static_cast<int32>(StatusCode);
+		const TSharedPtr<FJsonValue> StatusValue = Result->TryGetField(TEXT("httpStatus"));
+		if (!StatusValue.IsValid() || StatusValue->Type != EJson::Number)
+		{
+			return false;
+		}
+
+		const double StatusCode = StatusValue->AsNumber();
+		if (!FMath::IsFinite(StatusCode)
+			|| StatusCode < static_cast<double>(MIN_int32)
+			|| StatusCode > static_cast<double>(MAX_int32)
+			|| FMath::FloorToDouble(StatusCode) != StatusCode)
+		{
+			return false;
+		}
+
+		FDetails ParsedDetails;
+		if (!Result->TryGetStringField(TEXT("gamePackID"), ParsedDetails.GamePackID)
+			|| !Result->TryGetStringField(TEXT("responseBody"), ParsedDetails.ResponseBody)
+			|| !Result->TryGetStringField(TEXT("transportError"), ParsedDetails.TransportError))
+		{
+			return false;
+		}
+
+		ParsedDetails.HttpStatusCode = static_cast<int32>(StatusCode);
+		OutDetails = MoveTemp(ParsedDetails);
 		return true;
 	}
 
@@ -93,5 +112,15 @@ namespace CrowdControlSessionStartError
 			TEXT("Could not start Crowd Control session for game pack '%s' (%s). See diagnostics for details."),
 			*GamePackID,
 			*Status);
+	}
+
+	inline FString BuildDiagnostics(const FDetails& Details)
+	{
+		return FString::Printf(
+			TEXT("gamePackID='%s', HTTP status=%d, transportError='%s', responseBody=%s"),
+			*Details.GamePackID,
+			Details.HttpStatusCode,
+			*Details.TransportError,
+			Details.ResponseBody.IsEmpty() ? TEXT("<empty>") : *Details.ResponseBody);
 	}
 }
