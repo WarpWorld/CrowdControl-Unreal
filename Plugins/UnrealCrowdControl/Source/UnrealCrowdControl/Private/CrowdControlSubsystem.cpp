@@ -165,6 +165,10 @@ void UCrowdControlSubsystem::PrintEffectsToJsonFile()
 
 	TSharedPtr<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject);
 
+	// The Developer Portal and `crowdcontrol` only take a menu that says what it is.
+	RootJsonObject->SetNumberField("format", 1);
+	RootJsonObject->SetStringField("kind", "built-in");
+
 
 	TSharedPtr<FJsonObject> EffectsJsonObject = MakeShareable(new FJsonObject);
 
@@ -756,6 +760,7 @@ void UCrowdControlSubsystem::LoadDLL()
 		CC_RequestAuthCode = (RequestAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("RequestAuthCode"));
 		CC_GetAuthCode = (GetAuthCodeType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("GetAuthCode"));
 		CC_SetAutoStartSession = (SetAutoStartSessionType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetAutoStartSession"));
+		CC_SetLocalDevServer = (SetLocalDevServerType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("SetLocalDevServer"));
 		CC_StartSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StartSession"));
 		CC_StopSession = (SessionControlType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("StopSession"));
 		CC_EffectFailTemporary = (EffectFailMessageType)FPlatformProcess::GetDllExport(DLLHandle, TEXT("EffectFailTemporary"));
@@ -786,6 +791,31 @@ void UCrowdControlSubsystem::LoadDLL()
     		if (CC_SetAutoStartSession != nullptr)
     		{
     			CC_SetAutoStartSession(Settings->bStartSessionAutomatically);
+    		}
+
+    		// The local dev server (`crowdcontrol dev`) is for development only: a Shipping build
+    		// always connects to Crowd Control, whatever the setting says. The DLL stays loaded
+    		// between Play In Editor runs, so it is told either way.
+#if UE_BUILD_SHIPPING
+    		const bool bLocalDevServer = false;
+    		if (Settings->bUseLocalDevServer)
+    		{
+    			UE_LOG(LogCrowdControl, Warning, TEXT("Use Local Dev Server is set but this is a Shipping build. Connecting to Crowd Control."));
+    		}
+#else
+    		const bool bLocalDevServer = Settings->bUseLocalDevServer;
+#endif
+    		if (CC_SetLocalDevServer != nullptr)
+    		{
+    			CC_SetLocalDevServer(bLocalDevServer, TCHAR_TO_UTF8(*Settings->LocalDevServerHost), Settings->LocalDevServerPort);
+    			if (bLocalDevServer)
+    			{
+    				UE_LOG(LogCrowdControl, Log, TEXT("Using the local dev server at http://%s:%d instead of Crowd Control."), *Settings->LocalDevServerHost, Settings->LocalDevServerPort);
+    			}
+    		}
+    		else if (bLocalDevServer)
+    		{
+    			UE_LOG(LogCrowdControl, Error, TEXT("Use Local Dev Server is set but this CrowdControl.dll is too old to support it. Connecting to Crowd Control."));
     		}
     	}
     }

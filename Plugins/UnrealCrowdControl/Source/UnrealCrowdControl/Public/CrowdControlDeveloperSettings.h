@@ -36,4 +36,18 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Config, meta=(Categories="Config"))
 	bool bStartSessionAutomatically = true;
 
+	// Connect to the local dev server started with `crowdcontrol dev` instead of Crowd Control.
+	// It runs on your own machine and gives you a simulated viewer menu to send effects from,
+	// with no account and nothing reaching the live service. Ignored in Shipping builds.
+	UPROPERTY(config, EditAnywhere, Category="Local Dev Server", meta=(DisplayName="Use Local Dev Server"))
+	bool bUseLocalDevServer = false;
+
+	// The host the local dev server listens on. Leave as 127.0.0.1 unless it runs on another machine.
+	UPROPERTY(config, EditAnywhere, Category="Local Dev Server", meta=(EditCondition="bUseLocalDevServer"))
+	FString LocalDevServerHost = "127.0.0.1";
+
+	// The port the local dev server listens on. 4770 unless it was started with --port.
+	UPROPERTY(config, EditAnywhere, Category="Local Dev Server", meta=(EditCondition="bUseLocalDevServer", ClampMin="1", ClampMax="65535"))
+	int32 LocalDevServerPort = 4770;
+
 };

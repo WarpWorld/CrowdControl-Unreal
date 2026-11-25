@@ -321,6 +321,9 @@ public:
 	typedef void (*SetAutoStartSessionType)(bool autoStart);
 	SetAutoStartSessionType CC_SetAutoStartSession = nullptr;
 
+	typedef void (*SetLocalDevServerType)(bool enabled, const char* host, int port);
+	SetLocalDevServerType CC_SetLocalDevServer = nullptr;
+
 	typedef void (*SessionControlType)();
 	SessionControlType CC_StartSession = nullptr;
 	SessionControlType CC_StopSession = nullptr;
